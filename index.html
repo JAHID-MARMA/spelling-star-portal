@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="d1.js"></script>
+<script src="d2.js"></script>
+<script src="d3.js"></script>
+<script src="d4.js"></script>
+<script src="d5.js"></script>
+<script src="d6.js"></script>
+<script src="d7.js"></script>
+<script src="app.js"></script>
+<script src="gate.js"></script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spelling Star — Online Portal (Self Scale Academy)</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#0e1f3d;color:#182230}
+header{background:linear-gradient(90deg,#123A72,#0e2c57);color:#fff;padding:14px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:4px solid #F59E0B}
+header .logo{font-size:26px}
+header h1{font-size:20px;margin:0}
+header .sub{font-size:12px;opacity:.85}
+#studentChip{margin-left:auto;background:#F59E0B;color:#182230;font-weight:700;padding:8px 12px;border-radius:999px;font-size:14px}
+nav{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;background:#123A72;position:sticky;top:0;z-index:5}
+nav button{background:#fff;color:#123A72;border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;font-size:15px}
+nav button.on{background:#F59E0B;color:#182230}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.card{background:#fff;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.card h2{color:#123A72;margin-top:0;font-size:20px}
+.btn{background:#123A72;color:#fff;border:0;border-radius:12px;padding:12px 18px;font-size:16px;font-weight:700;cursor:pointer;margin:4px 4px 4px 0}
+.btn.gold{background:#F59E0B;color:#182230}
+.btn.green{background:#1e8e4f}
+.btn.red{background:#b3261e}
+.btn.ghost{background:#e8edf6;color:#123A72}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.big{font-size:19px;padding:15px 22px}
+input[type=text],select{font-size:17px;padding:11px;border:2px solid #b9c6dd;border-radius:10px;margin:4px 4px 4px 0;max-width:100%}
+input.ans{font-size:22px;width:min(520px,100%);letter-spacing:1px}
+.grid{display:flex;flex-wrap:wrap;gap:8px}
+.stu{background:#eef3fb;border:2px solid #c9d6ef;color:#123A72;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:600;font-size:15px;text-align:left}
+.stu small{display:block;font-weight:400;color:#596579}
+.stu.sel{border-color:#F59E0B;background:#fff4dd}
+.clue{font-size:19px;line-height:1.55}
+.clue .bn{font-size:21px}
+.jumble{font-size:32px;letter-spacing:6px;font-weight:800;color:#123A72}
+.gaps{font-size:30px;letter-spacing:4px;font-weight:800;color:#123A72}
+.fb{font-size:18px;font-weight:700;padding:10px 14px;border-radius:10px;margin-top:10px;display:none}
+.fb.ok{display:block;background:#e2f4e8;color:#14532d}
+.fb.no{display:block;background:#fde3e1;color:#7a130d}
+.scorebar{font-size:17px;font-weight:700;color:#123A72}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid #d4dcea;padding:7px 8px;text-align:left}
+th{background:#123A72;color:#fff}
+tr:nth-child(even) td{background:#f2f5fb}
+.chip{display:inline-block;background:#eef3fb;border:1px solid #c9d6ef;border-radius:999px;padding:6px 10px;margin:3px;font-size:13px}
+.chip.out{background:#fde3e1;border-color:#e5a49e}
+.banner{background:#F59E0B;color:#182230;font-weight:800;font-size:20px;text-align:center;padding:14px;border-radius:14px;margin-bottom:14px}
+.note{font-size:13px;color:#596579}
+.hidden{display:none}
+#printArea{display:none}
+.wsHead{text-align:center;border-bottom:3px solid #123A72;padding-bottom:10px;margin-bottom:12px}
+.wsHead h2{margin:0 0 4px;font-size:22px}
+.wsTitle{font-size:16px;font-weight:700}
+.wsMeta{font-size:13px;margin-top:6px}
+.wsQ{display:flex;align-items:baseline;gap:10px;padding:9px 4px;border-bottom:1px dotted #999;font-size:15px}
+.wsN{font-weight:800;min-width:30px}
+.wsP{flex:1}
+.wsA{flex:0 0 34%;border-bottom:2px solid #333;height:1.4em}
+.wsKey{page-break-before:always}
+@media (max-width:560px){
+nav button{min-height:44px;font-size:14px;padding:10px 12px}
+.btn{min-height:44px}
+.stu{min-height:44px;font-size:16px}
+.jumble{font-size:24px;letter-spacing:3px;overflow-wrap:anywhere}
+.gaps{font-size:22px;letter-spacing:2px;overflow-wrap:anywhere}
+.clue{font-size:17px}
+.card{padding:14px;overflow-x:auto}
+table{font-size:12px}
+th,td{padding:5px 6px}
+input.ans{font-size:20px}
+header h1{font-size:17px}
+}
+@media print{
+  body>*{display:none!important}
+  #printArea{display:block!important;color:#000;background:#fff;font-size:12px}
+  #printArea h2{color:#000}
+  #printArea table th{background:#ddd;color:#000}
+}
+
+
+/* ===== ONLINE PORTAL GATE + STAGE GUIDE ===== */
+#gate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#123A72,#0c2c5e);padding:16px}
+.gCard{background:#fff;border-radius:18px;max-width:430px;width:100%;padding:30px 26px;text-align:center;box-shadow:0 14px 44px rgba(0,0,0,.35)}
+.gCard .glogo{font-size:44px}
+.gCard h1{color:#123A72;font-size:23px;margin:6px 0 4px}
+.gsub{color:#596579;margin:0 0 14px;font-size:14px}
+.gCard input{width:100%;padding:12px 14px;border:2px solid #dfe6f2;border-radius:10px;font-size:17px;margin:6px 0;box-sizing:border-box}
+.gCard input:focus{border-color:#F59E0B;outline:none}
+.gbtn{width:100%;background:#F59E0B;color:#182230;font-weight:800;border:0;border-radius:10px;padding:13px;font-size:17px;margin-top:10px;cursor:pointer}
+.gbtn:active{transform:scale(.98)}
+.ghost{background:none;border:0;color:#123A72;margin-top:12px;cursor:pointer;text-decoration:underline;font-size:14px;font-weight:700}
+.gerr{color:#b00020;min-height:20px;margin:8px 0 0;font-size:14px}
+.gnote{font-size:12px;color:#596579;margin-top:10px}
+body.locked header,body.locked nav,body.locked main{display:none!important}
+body.student-mode .adminOnly{display:none!important}
+#view-stage .bn{color:#0a7d2c;font-style:italic}
+#view-stage .chk{margin:8px 0;padding-left:20px}
+#view-stage .chk li{margin:7px 0;line-height:1.5}
+#view-stage .off{background:#e3f2e6;color:#0a7d2c;font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+#view-stage .asm{background:#fff3d6;color:#8a5a00;font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+#view-stage .card h3{color:#123A72}
+
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gCard" id="gateHome">
+    <div class="glogo">&#11088;</div>
+    <h1>Spelling Star &mdash; Online Portal</h1>
+    <p class="gsub">Self Scale Academy &middot; Enter your full name + registration number</p>
+    <input id="gName" placeholder="Full name (as on your card)" autocomplete="off">
+    <input id="gReg" placeholder="Registration no. (e.g. KQZ26000652)" autocomplete="off">
+    <button class="gbtn" id="gEnter">Enter</button>
+    <p class="gerr" id="gErr"></p>
+    <button class="ghost" id="gTeacher">Teacher</button>
+    <p class="gnote">Only registered Spelling Star students can enter.</p>
+  </div>
+  <div class="gCard hidden" id="gateTeacher">
+    <div class="glogo">&#128188;</div>
+    <h1>Teacher Door</h1>
+    <p class="gsub">Admin access &mdash; full control</p>
+    <p class="gerr hidden" id="tchNotSet">Admin password not set. Ask the teacher.</p>
+    <div id="tchForm" class="hidden">
+      <input id="tchName" value="Muhammad Jahid Hasan" autocomplete="off">
+      <input id="tchPass" type="password" placeholder="Admin password" autocomplete="current-password">
+      <button class="gbtn" id="tchLogin">Teacher Sign In</button>
+      <p class="gerr" id="tchErr"></p>
+    </div>
+    <button class="ghost" id="tchBack">&larr; Back</button>
+  </div>
+</div>
+
+<header>
+  <div class="logo">&#11088;</div>
+  <div><h1>Spelling Star &mdash; Online Portal</h1><div class="sub">Self Scale Academy &middot; Official Level 4 Guide Bank (442 words) &middot; Student Practice Gate</div></div>
+  <div id="studentChip">No student selected</div>
+</header>
+<nav>
+  <button data-v="home" class="on">Home &amp; Students</button>
+  <button data-v="practice">Practice Trainers</button>
+  <button data-v="worksheet">Worksheets (Print)</button>
+  <button data-v="exam">Examiner / Tournament</button>
+  <button data-v="history">Score History</button><button data-v="stage" class="adminOnly">&#127908; Stage Guide</button><button id="navExit" style="display:none">&#215; Exit</button>
+</nav>
+<main>
+<section id="view-home">
+  <div class="card"><h2>Select a Student</h2><div id="stuList"></div>
+    <p class="note">Name entry is mandatory for scoring. Registered cards keep full name + registration no. on every score.</p>
+  </div>
+  <div class="card"><h2>How the rounds work</h2>
+    <p class="clue">Round 1 <b>Spelling</b> &rarr; Round 2 <b>Jumbled Word</b> &rarr; Round 3 <b>Fill in the Gaps</b> &rarr; Round 4 <b>Super Word</b>. One wrong answer = out (knockout). Rounds 1&ndash;3 use the official Level 4 guide words only (442 words, pages 111&ndash;133). Super Word uses easy outside-syllabus words in 6 named categories (Science, Cartoon, Sports, Capitals, Environment, Heritage/History) &mdash; 2 more categories are unknown and are not invented here.</p>
+  </div>
+</section>
+<section id="view-practice" class="hidden">
+  <div class="card"><h2>Practice Trainers &mdash; Teacher Controls</h2>
+    <label>Mode <select id="pMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
+    <label>Words <select id="pCount"><option>5</option><option selected>10</option><option>20</option><option>30</option><option>50</option></select></label>
+    <button class="btn gold" id="pStart">Start Test</button>
+    <div id="pBox" style="margin-top:12px"></div>
+  </div>
+</section>
+<section id="view-exam" class="hidden">
+  <div class="card"><h2>Examiner / Tournament &mdash; Teacher Only</h2>
+    <button class="btn" id="eAddReg">Add the 3 Students</button><br>
+    <label>Starting round <select id="eStartRound"><option value="1">Round 1 Spelling</option><option value="2">Round 2 Jumbled</option><option value="3">Round 3 Gaps</option><option value="4">Round 4 Super Word</option></select></label>
+    <label>Questions per student each round <select id="eQPer"><option value="1" selected>1 (official)</option><option value="2">2</option><option value="3">3</option></select></label>
+    <button class="btn green big" id="eStart">Start Tournament</button>
+    <button class="btn red" id="eReset">Reset</button>
+    <button class="btn ghost" id="ePrint">Print Results Sheet</button>
+    <p class="note">Official mode: no pass / no skip. One wrong answer = out. Word replacement before an answer is an organizer decision and is written in the audit trail.</p>
+    <div id="eBox" style="margin-top:12px"></div>
+  </div>
+</section>
+<section id="view-worksheet" class="hidden">
+  <div class="card"><h2>Teacher Worksheets &mdash; Print for Home Practice</h2>
+    <label>Student <select id="wStu"></select></label>
+    <label>Round <select id="wMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
+    <label>Words <select id="wCount"><option>5</option><option selected>10</option><option>20</option><option>30</option><option>50</option></select></label>
+    <label><input type="checkbox" id="wKey"> Include answer key page</label><br>
+    <button class="btn gold big" id="wGen">Generate Worksheet</button>
+    <button class="btn" id="wPrint">Print</button>
+    <p class="note">Student writes answers on the lines. The answer key (if selected) prints on a separate page for the teacher.</p>
+  </div>
+</section>
+<section id="view-history" class="hidden">
+  <div class="card"><h2>Score History (this laptop)</h2>
+    <button class="btn ghost" id="hPrint">Print History</button>
+    <div id="histBox" style="margin-top:10px"></div>
+  </div>
+</section>
+<section id="view-stage">
+  <div class="card">
+    <h2>&#127908; Teacher's Stage Guide</h2>
+    <p class="note">Act like the Channel I presenter. Nothing left unprepared &mdash; your side and the students' side.</p>
+    <button class="gbtn" style="max-width:320px" onclick="stagePrint()">&#128438; Print Stage Guide + Etiquette Card</button>
+  </div>
+
+  <div class="card"><h3>1 &middot; Presenter Script &mdash; say it like the show</h3>
+    <p><b>Opening:</b> &ldquo;Assalamu Alaikum! Welcome to Spelling Star &mdash; Level 4 stage. 100 brave spellers are here today. Only the strongest 10 will reach the Top 10. One wrong answer &mdash; and you are out. Spell strong, speak clearly!&rdquo;</p>
+    <p><b>Calling a student:</b> &ldquo;<i>[Full name]</i>, please come to the microphone.&rdquo; <span class="bn">(মাইক্রোফোনের সামনে এসো।)</span></p>
+    <p><b>Spelling round:</b> &ldquo;Your word is &lsquo;<i>____</i>&rsquo;. It means ____. Please spell it.&rdquo; <span class="bn">(শব্দটি বানান করে বলো।)</span></p>
+    <p><b>Jumbled Word:</b> &ldquo;Your letters are: A &ndash; R &ndash; T &ndash; E &ndash; H. Arrange them and make the word.&rdquo; <span class="bn">(বর্ণগুলো সাজিয়ে শব্দ বানাও।)</span></p>
+    <p><b>Fill in the Gaps:</b> &ldquo;Complete the word: _ A _ G E. Fill the missing letters.&rdquo;</p>
+    <p><b>Super Word:</b> &ldquo;This is a Super Word &mdash; outside the syllabus. Your category is <i>Sports</i>. Clue: ____.&rdquo;</p>
+    <p><b>Correct answer:</b> &ldquo;Correct! Well done, <i>[name]</i> &mdash; you stay in the game.&rdquo;</p>
+    <p><b>Knockout &mdash; firm but kind:</b> &ldquo;That is not correct. <i>[Name]</i>, you are out of the competition. Thank you &mdash; you came bravely.&rdquo; <span class="bn">(ভুল হয়েছে। তুমি এই পর্ব থেকে বাদ। সাহস করে মঞ্চে এসেছো &mdash; ধন্যবাদ।)</span></p>
+    <p><b>Top 10 reveal:</b> &ldquo;And now &mdash; our TOP 10! <i>[names]</i>. A big round of applause!&rdquo;</p>
+    <p><b>Top 3:</b> &ldquo;Three warriors remain! <i>[names]</i>.&rdquo;</p>
+    <p><b>Winner:</b> &ldquo;And the WINNER of Spelling Star Level 4 is &mdash; <i>[name]</i>!!&rdquo;</p>
+  </div>
+
+  <div class="card"><h3>2 &middot; Stage-Running Checklist</h3>
+    <ul class="chk">
+      <li><b>Turn order:</b> follow the entry-order list; every alive student answers once per round; survivors advance. <span class="off">Official</span></li>
+      <li><b>Flow:</b> 100 students &rarr; run rounds until 10 remain &rarr; Top 10 &rarr; Top 3 &rarr; Winner. Round order is fixed: Spelling &rarr; Jumbled Word &rarr; Fill in the Gaps &rarr; Super Word (Super Word cycles repeat until the winner remains). <span class="off">Official</span></li>
+      <li><b>Blank answer:</b> give ONE gentle re-prompt &mdash; &ldquo;Please answer.&rdquo; &mdash; then it counts as wrong (knockout). <span class="asm">ASSUMPTION &mdash; guide does not state this; organizer decision.</span></li>
+      <li><b>Mispronunciation / accent:</b> judge the final spelled LETTERS, not the accent. The student must speak each letter clearly, one by one: &ldquo;B &ndash; E &ndash; A &ndash; U &ndash; T &ndash; Y&rdquo;. <span class="asm">ASSUMPTION &mdash; judge letters, not accent.</span></li>
+      <li><b>Timing:</b> keep each turn brisk &mdash; about 30 seconds per answer in practice. <span class="asm">ASSUMPTION &mdash; no official timer stated.</span></li>
+      <li><b>Microphone:</b> hold it about 5 cm from the mouth; no tapping, no covering; speak letters loudly.</li>
+      <li><b>No help:</b> no hints from the audience, no second chances after a wrong answer. <span class="off">Official</span></li>
+    </ul>
+  </div>
+
+  <div class="card"><h3>3 &middot; Practice-Day Plan</h3>
+    <ul class="chk">
+      <li><b>Warmup (10 min):</b> 20 easy words spoken aloud, letter by letter.</li>
+      <li><b>Round drills (30 min):</b> 10 words &times; each of the 4 rounds, in official order.</li>
+      <li><b>Mock knockout (40 min):</b> run the full 100 &rarr; Top 10 in Tournament mode. One wrong = out.</li>
+      <li><b>Super Word categories (20 min):</b> rotate Science, Cartoon, Sports, Capitals, Environment, Heritage/History.</li>
+      <li><b>Daily repeat:</b> Monday&ndash;Saturday same plan; Sunday = full mock test. <span class="bn">প্র্যাকটিসে বাংলা সাহায্য চলবে, মঞ্চে নয়।</span></li>
+    </ul>
+  </div>
+
+  <div class="card" id="etiquetteCard"><h3>4 &middot; Student Stage Etiquette Card</h3>
+    <ul class="chk">
+      <li>Stand straight and face the judges.</li>
+      <li>Speak clearly into the microphone, letter by letter.</li>
+      <li>Answer only in the required form &mdash; spelled aloud, arranged word, or filled word.</li>
+      <li>If knocked out: smile, say &ldquo;Thank you,&rdquo; walk off gracefully. <span class="bn">(হাসিমুখে &ldquo;ধন্যবাদ&rdquo; বলে নেমে এসো।)</span></li>
+      <li><b>Do NOT:</b> ask the audience &middot; repeat after the presenter&rsquo;s hints &middot; argue with the judge &middot; touch the mic stand.</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+<div id="printArea"></div>
+
+
+
+
+</body>
+</html>
