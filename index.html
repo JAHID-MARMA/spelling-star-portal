@@ -24,21 +24,22 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .btn.red{background:#b3261e}
 .btn.ghost{background:#e8edf6;color:#123A72}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.big{font-size:19px;padding:15px 22px}
+.big{font-size:22px;padding:17px 26px}
+#pBox .card{padding:26px}
 input[type=text],select{font-size:17px;padding:11px;border:2px solid #b9c6dd;border-radius:10px;margin:4px 4px 4px 0;max-width:100%}
-input.ans{font-size:22px;width:min(520px,100%);letter-spacing:1px}
+input.ans{font-size:32px;width:min(560px,100%);letter-spacing:2px;padding:14px 16px}
 .grid{display:flex;flex-wrap:wrap;gap:8px}
 .stu{background:#eef3fb;border:2px solid #c9d6ef;color:#123A72;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:600;font-size:15px;text-align:left}
 .stu small{display:block;font-weight:400;color:#596579}
 .stu.sel{border-color:#F59E0B;background:#fff4dd}
-.clue{font-size:19px;line-height:1.55}
-.clue .bn{font-size:21px}
-.jumble{font-size:32px;letter-spacing:6px;font-weight:800;color:#123A72}
-.gaps{font-size:30px;letter-spacing:4px;font-weight:800;color:#123A72}
-.fb{font-size:18px;font-weight:700;padding:10px 14px;border-radius:10px;margin-top:10px;display:none}
+.clue{font-size:32px;line-height:1.65;font-weight:600}
+.clue .bn{font-size:34px}
+.jumble{font-size:58px;letter-spacing:10px;font-weight:800;color:#123A72;line-height:1.4}
+.gaps{font-size:54px;letter-spacing:6px;font-weight:800;color:#123A72;line-height:1.4}
+.fb{font-size:26px;font-weight:700;padding:16px 18px;border-radius:12px;margin-top:14px;display:none;line-height:1.5}
 .fb.ok{display:block;background:#e2f4e8;color:#14532d}
 .fb.no{display:block;background:#fde3e1;color:#7a130d}
-.scorebar{font-size:17px;font-weight:700;color:#123A72}
+.scorebar{font-size:24px;font-weight:700;color:#123A72;margin-bottom:10px}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{border:1px solid #d4dcea;padding:7px 8px;text-align:left}
 th{background:#123A72;color:#fff}
@@ -48,6 +49,13 @@ tr:nth-child(even) td{background:#f2f5fb}
 .banner{background:#F59E0B;color:#182230;font-weight:800;font-size:20px;text-align:center;padding:14px;border-radius:14px;margin-bottom:14px}
 .note{font-size:13px;color:#596579}
 .hidden{display:none}
+.gTeacherPhoto{width:110px;height:130px;object-fit:cover;border-radius:14px;border:4px solid #F59E0B;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.gTeacherName{color:#123A72;font-weight:800;font-size:17px;margin:8px 0 2px}
+.gTeacherName small{font-weight:600;color:#596579;font-size:13px}
+.phAvatar{position:relative;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;background:#123A72;color:#fff;font-weight:800;flex:0 0 auto}
+.phAvatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stu{display:flex;align-items:center;gap:10px}
+.tCard{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 #printArea{display:none}
 .msgBar{display:none;font-weight:700;font-size:15px;padding:12px 16px;border-radius:12px;margin-bottom:14px;border-left:6px solid}
 .msgBar.show{display:block}
@@ -58,17 +66,33 @@ tr:nth-child(even) td{background:#f2f5fb}
 .wsTitle{font-size:16px;font-weight:700}
 .wsMeta{font-size:13px;margin-top:6px}
 .wsQ{display:flex;align-items:baseline;gap:10px;padding:9px 4px;border-bottom:1px dotted #999;font-size:15px}
+#wPrev,#printArea .wsWrap{font-family:"Times New Roman",Times,serif}
+.wsWord{font-size:20px;font-weight:700;letter-spacing:2px;margin:6px 0}
+.wsClue{font-size:15px;line-height:1.6;margin:2px 0 4px}
+.wsBn{font-size:16px}
+.wsPage{margin-bottom:8px}
+@media print{.wsPage{page-break-after:always}.wsPage:last-child{page-break-after:auto}}
+.cert{border:10px double #B8860B;border-radius:8px;padding:40px 30px;text-align:center;font-family:"Times New Roman",Times,serif;background:#fffdf5}
+.cert h1{color:#123A72;font-size:34px;margin:6px 0}
+.cert h2{color:#8a6d00;font-size:24px;margin:6px 0;letter-spacing:2px}
+.cert .cname{font-size:30px;font-weight:700;color:#123A72;margin:14px 0 4px}
+.cert table{margin:14px auto;width:auto;font-size:16px}
+.cert .sig{margin-top:44px;display:flex;justify-content:space-around;font-size:15px}
 .wsN{font-weight:800;min-width:30px}
 .wsP{flex:1}
 .wsA{flex:0 0 34%;border-bottom:2px solid #333;height:1.4em}
 .wsKey{page-break-before:always}
+.wsFoot{text-align:center;font-size:12px;color:#444;border-top:2px solid #123A72;margin-top:10px;padding-top:6px}
 @media (max-width:560px){
 nav button{min-height:44px;font-size:14px;padding:10px 12px}
 .btn{min-height:44px}
 .stu{min-height:44px;font-size:16px}
-.jumble{font-size:24px;letter-spacing:3px;overflow-wrap:anywhere}
-.gaps{font-size:22px;letter-spacing:2px;overflow-wrap:anywhere}
-.clue{font-size:17px}
+.jumble{font-size:38px;letter-spacing:5px;overflow-wrap:anywhere}
+.gaps{font-size:34px;letter-spacing:3px;overflow-wrap:anywhere}
+.clue{font-size:25px}
+.fb{font-size:21px}
+input.ans{font-size:26px}
+.scorebar{font-size:20px}
 .card{padding:14px;overflow-x:auto}
 table{font-size:12px}
 th,td{padding:5px 6px}
@@ -111,7 +135,8 @@ body.student-mode .adminOnly{display:none!important}
 
 <div id="gate">
   <div class="gCard" id="gateHome">
-    <div class="glogo">&#11088;</div>
+    <img src="img/teacher.jpg" class="gTeacherPhoto" alt="Muhammad Jahid Hasan">
+    <div class="gTeacherName">Muhammad Jahid Hasan<br><small>Owner &amp; Teacher &mdash; Self Scale Academy</small></div>
     <h1>Spelling Star &mdash; Online Portal</h1>
     <p class="gsub">Self Scale Academy &middot; Enter your full name + registration number</p>
     <input id="gName" placeholder="Full name (as on your card)" autocomplete="off">
@@ -122,7 +147,8 @@ body.student-mode .adminOnly{display:none!important}
     <p class="gnote">Only registered Spelling Star students can enter.</p>
   </div>
   <div class="gCard hidden" id="gateTeacher">
-    <div class="glogo">&#128188;</div>
+    <img src="img/teacher.jpg" class="gTeacherPhoto" alt="Muhammad Jahid Hasan">
+    <div class="gTeacherName">Muhammad Jahid Hasan<br><small>Owner &amp; Teacher &mdash; Self Scale Academy</small></div>
     <h1>Teacher Door</h1>
     <p class="gsub">Admin access &mdash; full control</p>
     <p class="gerr hidden" id="tchNotSet">Admin password not set. Ask the teacher.</p>
@@ -146,11 +172,12 @@ body.student-mode .adminOnly{display:none!important}
   <button data-v="practice">Practice Trainers</button>
   <button data-v="worksheet">Worksheets (Print)</button>
   <button data-v="exam">Examiner / Tournament</button>
-  <button data-v="history">Score History</button><button data-v="stage" class="adminOnly">&#127908; Stage Guide</button><button id="navExit" style="display:none">&#215; Exit</button>
+  <button data-v="history">Score History</button><button data-v="results" class="adminOnly">&#128202; Results Platform</button><button data-v="stage" class="adminOnly">&#127908; Stage Guide</button><button id="navExit" style="display:none">&#215; Exit</button>
 </nav>
 <main>
 <div id="msgBar" class="msgBar"></div>
 <section id="view-home">
+  <div class="card"><div class="tCard"><img src="img/teacher.jpg" class="gTeacherPhoto" alt="Muhammad Jahid Hasan"><div><h2 style="margin:0">Muhammad Jahid Hasan</h2><p class="note" style="font-size:15px">Owner &amp; Teacher &mdash; Self Scale Academy<br>Spelling Star 2026 &middot; Level 4 Champion Training</p></div></div></div>
   <div class="card"><h2>Select a Student</h2><div id="stuList"></div>
     <p class="note">Name entry is mandatory for scoring. Registered cards keep full name + registration no. on every score.</p>
   </div>
@@ -180,13 +207,60 @@ body.student-mode .adminOnly{display:none!important}
 </section>
 <section id="view-worksheet" class="hidden">
   <div class="card"><h2>Worksheets &mdash; Print for Home Practice</h2>
-    <label>Student <select id="wStu"></select></label>
+    <label class="adminOnly">Student <select id="wStu"></select></label>
     <label>Round <select id="wMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
     <label>Words <select id="wCount"><option>5</option><option selected>10</option><option>20</option><option>30</option><option>50</option></select></label>
     <label><input type="checkbox" id="wKey"> Include answer key page</label><br>
+    <label><input type="checkbox" id="wBangla" checked> Bangla meaning</label>
+    <label><input type="checkbox" id="wDef" checked> English meaning / definition</label>
+    <label><input type="checkbox" id="wEx" checked> Examples</label><br>
+    <label>Rows per page <select id="wRows"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></label>
+    <label>Font size <select id="wFont"><option value="auto" selected>Auto</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option></select></label><br>
+    <p class="note" id="wLive"></p>
     <button class="btn gold big" id="wGen">Generate Worksheet</button>
     <button class="btn" id="wPrint">Print</button>
+    <button class="btn ghost" id="wDoc">Download Word (.doc)</button>
     <p class="note">Student writes answers on the lines. The answer key (if selected) prints on a separate page for the teacher.</p>
+    <div id="wPrev" style="margin-top:14px"></div>
+  </div>
+</section>
+<section id="view-results" class="hidden">
+  <div class="card"><h2>&#128202; Results Platform &mdash; All Students (Teacher Only)</h2>
+    <p class="note">Every finished test on this device, newest first. Scores are saved on this device only.</p>
+    <label>Student <select id="resFilter"><option value="">All students</option></select></label>
+    <button class="btn ghost" id="resSort">Oldest first</button>
+    <button class="btn" id="resPrint">Print Dashboard</button>
+    <button class="btn ghost" id="resCsv">Download CSV</button>
+    <button class="btn ghost" id="resDoc">Download Word (.doc)</button>
+    <div id="resDash" style="margin-top:10px"></div>
+  </div>
+  <div class="card"><h2>Progress Report</h2>
+    <label>Student <select id="repStu"></select></label>
+    <button class="btn gold" id="repGen">Generate Report</button>
+    <button class="btn" id="repPrint">Print Report</button>
+    <button class="btn ghost" id="repDoc">Download Word (.doc)</button>
+    <div id="repBox" style="margin-top:10px"></div>
+  </div>
+  <div class="card"><h2>Certificate</h2>
+    <label>Student <select id="certStu"></select></label>
+    <label>Test <select id="certTest"></select></label>
+    <button class="btn gold" id="certGen">Generate Certificate</button>
+    <button class="btn" id="certPrint">Print Certificate</button>
+    <button class="btn ghost" id="certDoc">Download Word (.doc)</button>
+    <div id="certBox" style="margin-top:10px"></div>
+  </div>
+<div class="card"><h2>Student Photos (Teacher Only)</h2>
+    <p class="note">You assign each photo yourself — no guessing. Pick the correct portrait for each student; it is saved on this device and shown on cards, worksheets and certificates.</p>
+    <div id="photoBox" class="grid"></div>
+  </div>
+  <div class="card"><h2>Add Offline Test Score (Teacher Only)</h2>
+    <p class="note">For classroom / oral tests taken off the portal — they join the same one-platform record.</p>
+    <label>Student <select id="mkStu"></select></label>
+    <label>Test name <input type="text" id="mkTest" placeholder="e.g. Oral Episode 2" style="width:220px"></label>
+    <label>Obtained <input type="text" id="mkOb" placeholder="0" style="width:70px"></label>
+    <label>Total <input type="text" id="mkTo" placeholder="0" style="width:70px"></label>
+    <button class="btn gold" id="mkAdd">Add Score</button>
+    <p class="gerr" id="mkErr" style="min-height:18px"></p>
   </div>
 </section>
 <section id="view-history" class="hidden">

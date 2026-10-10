@@ -3,21 +3,66 @@
 (function(){
 "use strict";
 VIEWS.push("stage");
+VIEWS.push("results");
 window.stagePrint=function(){
   var el=document.getElementById("view-stage");
   doPrint("<h2>Spelling Star &mdash; Teacher's Stage Guide</h2>"+el.innerHTML);
 };
 var ADMIN_KEY="ssa_admin_hash", SESSION=null;
 function gEl(id){return document.getElementById(id);}
-function sha256hex(s){
-  return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){
-    var a=new Uint8Array(b),out="";
-    for(var i=0;i<a.length;i++){out+=("0"+a[i].toString(16)).slice(-2);}
-    return out;
-  });
+/* Pure-JS SHA-256 (public-domain style implementation) - used so the admin
+   password works in EVERY browser, including ones without crypto.subtle
+   (older browsers, in-app webviews, non-HTTPS). Output matches SHA-256. */
+function sha256hex(ascii){
+  ascii=unescape(encodeURIComponent(ascii));
+  function rr(v,a){return (v>>>a)|(v<<(32-a));}
+  var maxWord=Math.pow(2,32),result="";
+  var words=[],asciiBitLength=ascii.length*8;
+  var hash=sha256hex.h=sha256hex.h||[],k=sha256hex.k=sha256hex.k||[];
+  var primeCounter=k.length,isComposite={};
+  for(var candidate=2;primeCounter<64;candidate++){
+    if(!isComposite[candidate]){
+      for(var i=0;i<313;i+=candidate){isComposite[i]=candidate;}
+      hash[primeCounter]=(Math.pow(candidate,0.5)*maxWord)|0;
+      k[primeCounter++]=(Math.pow(candidate,1/3)*maxWord)|0;
+    }
+  }
+  ascii+="\x80";
+  while(ascii.length%64-56)ascii+="\x00";
+  for(var i=0;i<ascii.length;i++){
+    var j=ascii.charCodeAt(i);
+    if(j>>8)return; // ASCII only
+    words[i>>2]|=j<<((3-i)%4)*8;
+  }
+  words[words.length]=((asciiBitLength/maxWord)|0);
+  words[words.length]=(asciiBitLength);
+  for(var j=0;j<words.length;){
+    var w=words.slice(j,j+=16),oldHash=hash;
+    hash=hash.slice(0,8);
+    for(var i=0;i<64;i++){
+      var w15=w[i-15],w2=w[i-2];
+      var a=hash[0],e=hash[4];
+      var temp1=hash[7]
+        +(rr(e,6)^rr(e,11)^rr(e,25))
+        +((e&hash[5])^((~e)&hash[6]))
+        +k[i]
+        +(w[i]=(i<16)?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+      var temp2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash=[(temp1+temp2)|0].concat(hash);
+      hash[4]=(hash[4]+temp1)|0;
+    }
+    for(var i=0;i<8;i++){hash[i]=(hash[i]+oldHash[i])|0;}
+  }
+  for(var i=0;i<8;i++){
+    for(var j=3;j+1;j--){
+      var b=(hash[i]>>(j*8))&255;
+      result+=((b<16)?"0":"")+b.toString(16);
+    }
+  }
+  return result;
 }
 function getAdminHash(){try{return localStorage.getItem(ADMIN_KEY);}catch(e){return null;}}
-var HIDE_STU=["eAddReg","eQPer","eStartRound","eReset","ePrint","pCount","pMode","wStu"];
+var HIDE_STU=["eAddReg","eQPer","eStartRound","eReset","ePrint","wStu"];
 function studentLogin(){
   var n=gEl("gName").value.trim(), r=gEl("gReg").value.trim(), err=gEl("gErr");
   err.textContent="";
@@ -39,10 +84,10 @@ function teacherLogin(){
   var name=gEl("tchName").value.trim()||"Muhammad Jahid Hasan";
   var pw=gEl("tchPass").value;
   if(!pw){err.textContent="Password is required.";return;}
-  sha256hex(pw).then(function(hx){
-    if(hx===getAdminHash()){enterApp("admin",name,"");}
-    else{err.textContent="Wrong password. Please try again.";}
-  });
+  var hx;
+  try{hx=sha256hex(pw);}catch(e){err.textContent="Password check failed on this device. Please try again.";return;}
+  if(hx===getAdminHash()){enterApp("admin",name,"");}
+  else{err.textContent="Wrong password. Please try again.";}
 }
 function enterApp(role,name,id){
   SESSION={role:role,name:name,id:id};
@@ -74,6 +119,8 @@ function enterApp(role,name,id){
   }else{
     document.body.classList.add("admin-mode");
     gEl("studentChip").textContent=name+" (Teacher)";
+    if(typeof renderResults==="function")renderResults();
+    show("results");
   }
   if(!gEl("devNote")){
     gEl("view-history").insertAdjacentHTML("beforeend","<p class=\"note\" id=\"devNote\">Scores are saved on this device only.</p>");

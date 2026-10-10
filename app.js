@@ -10,7 +10,7 @@ function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"
 function norm(s){return String(s||"").toLowerCase().replace(/[^a-z]/g,"");}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function pick(a){return a[Math.floor(Math.random()*a.length)];}
-function grade(p){if(p>=90)return "A+";if(p>=80)return "A";if(p>=70)return "A-";if(p>=60)return "B";if(p>=50)return "C";return "F";}
+function grade(p){if(p>=80)return "A+";if(p>=70)return "A";if(p>=60)return "A-";if(p>=50)return "B";if(p>=40)return "C";if(p>=33)return "D";return "F";} /* Bangladesh school grade scale */
 function nowStr(){return new Date().toLocaleString();}
 /* Non-blocking inline message banner (replaces blocking alert()): never freezes the tab */
 var _msgT=null;
@@ -34,10 +34,48 @@ function show(v){VIEWS.forEach(function(x){$("view-"+x).classList.toggle("hidden
 function allStudents(){
   return {reg:STUDENTS.filter(function(s){return s.r;})};
 }
+function studentPhotoSrc(st){
+  try{var d=localStorage.getItem("ss_photo_"+st.id);if(d)return d;}catch(e){}
+  return st.photo||"";
+}
+function photoHTML(st,px){
+  var initials=String(st.n||"?").split(" ").map(function(w){return w.charAt(0);}).join("").slice(0,2).toUpperCase();
+  var src=studentPhotoSrc(st);
+  var img=src?'<img src="'+src+'" alt="" onerror="this.remove()">':'';
+  return '<span class="phAvatar" style="width:'+px+'px;height:'+px+'px;font-size:'+Math.round(px*0.36)+'px">'+img+'<span>'+esc(initials)+'</span></span>';
+}
+function renderPhotoBox(){
+  var h="";
+  STUDENTS.forEach(function(st,i){
+    h+="<div class='card' style='box-shadow:none;border:2px solid #dfe6f2;text-align:center;min-width:180px'>"+photoHTML(st,90)+
+       "<div style='font-weight:700;margin-top:8px'>"+esc(st.n)+"<br><small>"+esc(st.id)+"</small></div>"+
+       "<label class='btn ghost' style='margin-top:8px;cursor:pointer'>Set photo<input type='file' accept='image/*' data-i='"+i+"' class='phPick' style='display:none'></label></div>";
+  });
+  $("photoBox").innerHTML=h;
+  document.querySelectorAll(".phPick").forEach(function(inp){
+    inp.addEventListener("change",function(){
+      var f=inp.files[0];if(!f)return;
+      var st=STUDENTS[parseInt(inp.getAttribute("data-i"),10)];
+      var rd=new FileReader();
+      rd.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          var c=document.createElement("canvas"),mx=420,sc=Math.min(1,mx/Math.max(img.width,img.height));
+          c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+          c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+          try{localStorage.setItem("ss_photo_"+st.id,c.toDataURL("image/jpeg",0.8));}catch(e){say("Photo too large to save on this device.","warn");return;}
+          renderPhotoBox();renderStudents();say("Photo saved for "+st.n+".","ok");
+        };
+        img.src=rd.result;
+      };
+      rd.readAsDataURL(f);
+    });
+  });
+}
 function renderStudents(){
   var g=allStudents(),h="";
   h+="<h3>Registered (Spelling Star cards)</h3><div class='grid'>";
-  g.reg.forEach(function(s){h+="<button class='stu' data-n='"+esc(s.n)+"' data-id='"+esc(s.id)+"'>"+esc(s.n)+"<small>"+esc(s.id)+"</small></button>";});
+  g.reg.forEach(function(s){h+="<button class='stu' data-n='"+esc(s.n)+"' data-id='"+esc(s.id)+"'>"+photoHTML(s,44)+"<span>"+esc(s.n)+"<small>"+esc(s.id)+"</small></span></button>";});
   h+="</div>";
   $("stuList").innerHTML=h;
   document.querySelectorAll(".stu").forEach(function(b){b.addEventListener("click",function(){setStudent(b.getAttribute("data-n"),b.getAttribute("data-id"));});});
@@ -124,7 +162,7 @@ function scoreCardHTML(c){
   "<tr><th>Round / Test</th><td>"+esc(c.test)+"</td></tr>"+
   "<tr><th>Obtained</th><td>"+c.obtained+" / "+c.total+"</td></tr>"+
   "<tr><th>Percentage</th><td>"+c.pct+"%</td></tr>"+
-  "<tr><th>Grade</th><td><b>"+esc(c.grade)+"</b> <span class='note'>(grade scale: teacher scale, ASSUMPTION)</span></td></tr></table></div>";
+  "<tr><th>Grade</th><td><b>"+esc(c.grade)+"</b> <span class='note'>(Bangladesh school grade scale)</span></td></tr></table></div>";
 }
 
 /* ---------- History ---------- */
@@ -301,28 +339,154 @@ function wsItems(){
   else{items=shuffle(BANK).slice(0,count);}
   return items;
 }
-function wsClue(it,mode){
-  if(mode==="super"){return "Category: "+it.cat+" \u2014 Clue: "+it.c;}
-  if(mode==="jumbled"){return "Unscramble: "+jumble(it.w)+" \u2014 ("+it.en+")";}
-  if(mode==="gaps"){return "Fill in the gaps: "+gapPattern(it.w)+" \u2014 ("+it.en+")";}
-  return it.bn+" \u2014 "+it.en+" ("+it.pos+")";
+function wsQuestionHTML(it,mode){
+  var showBn=$("wBangla").checked, showDef=$("wDef").checked, showEx=$("wEx").checked;
+  var q="",clue=[];
+  if(mode==="jumbled"){q='<div class="wsWord">'+esc(jumble(it.w))+'</div>';}
+  else if(mode==="gaps"){q='<div class="wsWord">'+esc(gapPattern(it.w))+'</div>';}
+  else if(mode==="super"){q='<div class="wsWord">'+esc(it.cat)+'</div>';}
+  else{q='<div class="wsWord">Write the correct spelling:</div>';}
+  if(mode==="super"){if(showDef&&it.c)clue.push(esc(it.c));}
+  else{
+    if(showBn&&it.bn)clue.push('<span class="wsBn">'+esc(it.bn)+'</span>');
+    if(showDef)clue.push(esc(it.en)+(it.pos?' <i>('+esc(it.pos)+')</i>':''));
+    if(showEx&&it.ex)clue.push('<i>&ldquo;'+esc(it.ex)+'&rdquo;</i>');
+  }
+  return q+(clue.length?'<div class="wsClue">'+clue.join('<br>')+'</div>':'');
+}
+function wsAutoFont(rows){return rows>=20?12:rows>=15?13:rows>=10?14:16;}
+function wsLiveInfo(){
+  var n=Math.min(parseInt($("wCount").value,10)||10,($("wMode").value==="super"?SUPER:BANK).length);
+  $("wLive").textContent="\uD83D\uDCC4 "+(($("wMode").value==="super"?SUPER:BANK).length)+" words in bank \u2022 worksheet will have exactly "+n+" rows.";
 }
 function genWorksheet(){
   var mode=$("wMode").value, items=wsItems(), stu=STUDENTS[parseInt($("wStu").value,10)]||{n:"",id:""};
-  var h="<div class='wsHead'><h2>Notun Kuri English Version School</h2><div class='wsTitle'>Spelling Practice Worksheet \u2014 "+esc(modeName(mode))+"</div><div class='wsMeta'>Student: <b>"+esc(stu.n)+(stu.id?" ("+esc(stu.id)+")":"")+"</b> &nbsp; Date: __________ &nbsp; Score: ______ / "+items.length+"</div></div>";
-  h+="<div class='wsBody'>";
-  items.forEach(function(it,i){h+="<div class='wsQ'><span class='wsN'>"+(i+1)+".</span><span class='wsP'>"+esc(wsClue(it,mode))+"</span><span class='wsA'></span></div>";});
-  h+="</div>";
+  var rows=Math.max(1,parseInt($("wRows").value,10)||10);
+  var fv=$("wFont").value, fs=(fv==="auto")?wsAutoFont(rows):(parseInt(fv,10)||14);
+  var head="<div class='wsHead'><h2>Self Scale Academy</h2><div class='wsTitle'>Spelling Practice Worksheet \u2014 "+esc(modeName(mode))+"</div><div class='wsMeta'>Student: <b>"+esc(stu.n)+(stu.id?" ("+esc(stu.id)+")":"")+"</b> &nbsp; Date: __________ &nbsp; Score: ______ / "+items.length+"</div></div>";
+  var h="<div class='wsWrap' style='font-size:"+fs+"px;font-family:\"Times New Roman\",Times,serif'>";
+  for(var p=0;p<items.length;p+=rows){
+    h+="<div class='wsPage'>"+(p===0?head:"");
+    for(var i=p;i<Math.min(p+rows,items.length);i++){
+      var it=items[i];
+      h+="<div class='wsQ'><span class='wsN'>"+(i+1)+".</span><span class='wsP'>"+wsQuestionHTML(it,mode)+"</span><span class='wsA'></span></div>";
+    }
+    h+="<div class='wsFoot'>Prepared by Muhammad Jahid Hasan \u2014 Self Scale Academy &nbsp;|&nbsp; Page "+(Math.floor(p/rows)+1)+" of "+Math.ceil(items.length/rows)+"</div>";
+    h+="</div>";
+  }
   if($("wKey").checked){
     h+="<div class='wsKey'><h2>Answer Key \u2014 for the teacher only</h2><table><tr><th>No.</th><th>Word</th><th>Meaning</th></tr>";
-    items.forEach(function(it,i){h+="<tr><td>"+(i+1)+"</td><td><b>"+esc(it.w)+"</b></td><td>"+esc(it.c||it.en||"")+"</td></tr>";});
+    items.forEach(function(it,i){h+="<tr><td>"+(i+1)+"</td><td><b>"+esc(it.w)+"</b></td><td>"+esc((it.bn?it.bn+" \u2014 ":"")+(it.c||it.en||""))+"</td></tr>";});
     h+="</table></div>";
   }
+  h+="</div>";
   $("printArea").innerHTML=h;
+  $("wPrev").innerHTML=h;
   say("Worksheet is ready \u2014 press Print.","ok");
 }
 
+
+/* ---------- Results Platform (teacher only — one platform for all scores) ---------- */
+var RES_ASC=false;
+function resRows(){
+  var f=$("resFilter").value;
+  var rows=HISTORY.filter(function(c){return !f||c.student===f;});
+  rows.sort(function(a,b){return RES_ASC?(HISTORY.indexOf(a)-HISTORY.indexOf(b)):(HISTORY.indexOf(b)-HISTORY.indexOf(a));});
+  return rows;
+}
+function resTableHTML(rows){
+  if(!rows.length)return "<p class='note'>No finished tests yet.</p>";
+  var h="<table><tr><th>#</th><th>Date</th><th>Student</th><th>ID</th><th>Round / Test</th><th>Obtained</th><th>Total</th><th>%</th><th>Grade</th></tr>";
+  rows.forEach(function(c,i){h+="<tr><td>"+(i+1)+"</td><td>"+esc(c.date)+"</td><td>"+esc(c.student)+"</td><td>"+esc(c.id)+"</td><td>"+esc(c.test)+"</td><td>"+c.obtained+"</td><td>"+c.total+"</td><td>"+c.pct+"</td><td><b>"+esc(c.grade)+"</b></td></tr>";});
+  return h+"</table>";
+}
+function fillStudentSelects(){
+  var opts=STUDENTS.map(function(s){return "<option value='"+esc(s.n)+"'>"+esc(s.n)+" ("+esc(s.id)+")</option>";}).join("");
+  $("repStu").innerHTML=opts;
+  $("certStu").innerHTML=opts;
+  $("mkStu").innerHTML=opts;
+  var rf=$("resFilter");var cur=rf.value;
+  rf.innerHTML="<option value=''>All students</option>"+STUDENTS.map(function(s){return "<option value='"+esc(s.n)+"'>"+esc(s.n)+"</option>";}).join("");
+  rf.value=cur;
+  fillCertTests();
+}
+function renderResults(){
+  fillStudentSelects();
+  renderPhotoBox();
+  $("resDash").innerHTML=resTableHTML(resRows())+"<p class='note'>Scores are saved on this device only.</p>";
+}
+function genReport(){
+  var n=$("repStu").value;
+  var list=HISTORY.filter(function(c){return c.student===n;});
+  if(!list.length){$("repBox").innerHTML="<p class='note'>No tests recorded for "+esc(n)+" yet.</p>";return;}
+  var st=STUDENTS.filter(function(s){return s.n===n;})[0]||{id:""};
+  var best=list.reduce(function(a,b){return b.pct>a.pct?b:a;},list[0]);
+  var avg=Math.round(list.reduce(function(a,b){return a+b.pct;},0)/list.length*10)/10;
+  var first=list[0].pct,last=list[list.length-1].pct;
+  var trend=last>first?"Improving \u2191":(last<first?"Needs work \u2193":"Steady \u2192");
+  var h="<div class='wsHead' style=\"font-family:'Times New Roman',Times,serif\"><h2>Self Scale Academy</h2><div class='wsTitle'>Student Progress Report</div><div class='wsMeta'>Student: <b>"+esc(n)+"</b>"+(st.id?" ("+esc(st.id)+")":"")+"</div></div>";
+  h+="<table><tr><th>Tests taken</th><td>"+list.length+"</td></tr><tr><th>Best score</th><td>"+best.pct+"% ("+esc(best.test)+", "+esc(best.date)+")</td></tr><tr><th>Average</th><td>"+avg+"%</td></tr><tr><th>Trend (first \u2192 last)</th><td><b>"+trend+"</b> ("+first+"% \u2192 "+last+"%)</td></tr></table>";
+  h+="<h3>Dated test history</h3>"+resTableHTML(list.slice().reverse());
+  h+="<p style='margin-top:26px'>Teacher's Signature: ______________________ &nbsp;&nbsp; Date: __________ &nbsp;&nbsp; Seal: __________</p>";
+  $("repBox").innerHTML=h;
+}
+function addOfflineMark(){
+  var n=$("mkStu").value, t=$("mkTest").value.trim(), ob=parseFloat($("mkOb").value), to=parseFloat($("mkTo").value);
+  var err=$("mkErr");err.textContent="";
+  var st=STUDENTS.filter(function(x){return x.n===n;})[0]||{id:""};
+  if(!t){err.textContent="Write the test name.";return;}
+  if(!(ob>=0)||!(to>0)||ob>to){err.textContent="Obtained / Total must be numbers, and Obtained \u2264 Total.";return;}
+  var pct=Math.round(ob*1000/to)/10;
+  HISTORY.push({date:nowStr(),student:n,id:st.id||"",test:t+" (Offline)",obtained:ob,total:to,pct:pct,grade:grade(pct)});
+  try{localStorage.setItem("ss_history",JSON.stringify(HISTORY));}catch(e){}
+  $("mkTest").value="";$("mkOb").value="";$("mkTo").value="";
+  renderResults();say("Offline score added for "+n+".","ok");
+}
+function fillCertTests(){
+  var n=$("certStu").value;
+  var list=HISTORY.filter(function(c){return c.student===n;});
+  var h="<option value=''>Overall Achievement</option>";
+  list.forEach(function(c,i){h+="<option value='"+i+"'>"+esc(c.test)+" — "+esc(c.date)+" ("+c.obtained+"/"+c.total+")</option>";});
+  $("certTest").innerHTML=h;
+}
+function certHTML(){
+  var n=$("certStu").value;
+  var st=STUDENTS.filter(function(s){return s.n===n;})[0]||{id:""};
+  var list=HISTORY.filter(function(c){return c.student===n;});
+  var ti=$("certTest").value, c=ti===""?null:list[parseInt(ti,10)];
+  var line=c?("for outstanding performance in <b>"+esc(c.test)+"</b><br>Score: <b>"+c.obtained+" / "+c.total+" ("+c.pct+"% — Grade "+esc(c.grade)+")</b><br>Date: "+esc(c.date))
+            :"for dedicated preparation and outstanding commitment<br>to the Spelling Star 2026 championship training";
+  return "<div class='cert'><div style='font-size:40px'>\u2B50</div><h2>SELF SCALE ACADEMY</h2><h1>Certificate of Achievement</h1>"+
+  "<p>This certificate is proudly presented to</p><div class='cname'>"+esc(n)+"</div>"+
+  (st.id?"<p>Registration No. <b>"+esc(st.id)+"</b></p>":"")+
+  "<p>"+line+"</p>"+
+  "<div class='sig'><div>______________________<br><b>Muhammad Jahid Hasan</b><br>Owner &amp; Teacher</div><div>______________________<br>Date &amp; Seal</div></div></div>";
+}
+function genCert(){$("certBox").innerHTML=certHTML();}
+function printCert(){doPrint(certHTML());}
+function wsDocHTML(){return $("printArea").innerHTML||"";}
+function dlWorksheetDoc(){
+  if(!$("printArea").innerHTML){say("Generate the worksheet first.","warn");return;}
+  dlDoc("Spelling_Worksheet_"+$("wMode").value+".doc",$("printArea").innerHTML);
+}
+function printReport(){doPrint("<div style=\"font-family:'Times New Roman',Times,serif\">"+$("repBox").innerHTML+"</div>");}
+function printResults(){doPrint("<h2>Self Scale Academy — Results Dashboard</h2>"+resTableHTML(resRows()));}
+function dlResultsCsv(){
+  var rows=resRows();if(!rows.length){say("No scores to export yet.","warn");return;}
+  var csv="Date,Student,ID,Test,Obtained,Total,Percent,Grade\n";
+  rows.forEach(function(c){csv+="\""+String(c.date).replace(/"/g,'""')+"\",\""+c.student.replace(/"/g,'""')+"\",\""+String(c.id).replace(/"/g,'""')+"\",\""+String(c.test).replace(/"/g,'""')+"\","+c.obtained+","+c.total+","+c.pct+","+c.grade+"\n";});
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv"}));a.download="SelfScaleAcademy_Results.csv";
+  document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},800);
+}
+
+function dlDoc(filename,html){
+  var doc='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"></head><body>'+html+'</body></html>';
+  var blob=new Blob(["\ufeff"+doc],{type:"application/msword"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;
+  document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},800);
+}
 /* ---------- Print ---------- */
+
 function doPrint(html){
   $("printArea").innerHTML=html;
   window.print();
@@ -337,8 +501,24 @@ $("eReset").addEventListener("click",exReset);
 $("ePrint").addEventListener("click",function(){if(EX)printExam();});
 $("hPrint").addEventListener("click",printHistory);
 $("wGen").addEventListener("click",genWorksheet);
+$("wDoc").addEventListener("click",dlWorksheetDoc);
+["wMode","wCount"].forEach(function(id){$(id).addEventListener("change",wsLiveInfo);});
+$("resCsv").addEventListener("click",dlResultsCsv);
+$("resDoc").addEventListener("click",function(){if(resRows().length)dlDoc("SelfScaleAcademy_Results.doc","<h2>Self Scale Academy \u2014 Results Dashboard</h2>"+resTableHTML(resRows()));else say("No scores to export yet.","warn");});
+$("repDoc").addEventListener("click",function(){if($("repBox").innerHTML)dlDoc("Progress_Report.doc",$("repBox").innerHTML);else say("Generate the report first.","warn");});
+$("certDoc").addEventListener("click",function(){if($("certBox").innerHTML)dlDoc("Certificate.doc",$("certBox").innerHTML);else say("Generate the certificate first.","warn");});
+$("mkAdd").addEventListener("click",addOfflineMark);
+$("resSort").addEventListener("click",function(){RES_ASC=!RES_ASC;this.textContent=RES_ASC?"Newest first":"Oldest first";renderResults();});
+$("resFilter").addEventListener("change",renderResults);
+$("resPrint").addEventListener("click",printResults);
+$("repGen").addEventListener("click",genReport);
+$("repPrint").addEventListener("click",function(){if($("repBox").innerHTML)printReport();});
+$("certStu").addEventListener("change",fillCertTests);
+$("certGen").addEventListener("click",genCert);
+$("certPrint").addEventListener("click",function(){if($("certBox").innerHTML)printCert();});
 $("wPrint").addEventListener("click",function(){window.print();});
 renderStudents();
+wsLiveInfo();
 var reg=allStudents().reg;
 if(reg.length)setStudent(reg[0].n,reg[0].id);
 newExam();
