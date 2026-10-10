@@ -1,16 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="d1.js"></script>
-<script src="d2.js"></script>
-<script src="d3.js"></script>
-<script src="d4.js"></script>
-<script src="d5.js"></script>
-<script src="d6.js"></script>
-<script src="d7.js"></script>
-<script src="app.js"></script>
-<script src="gate.js"></script>
-
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spelling Star — Online Portal (Self Scale Academy)</title>
@@ -164,7 +154,7 @@ body.student-mode .adminOnly{display:none!important}
   </div>
 </section>
 <section id="view-practice" class="hidden">
-  <div class="card"><h2>Practice Trainers &mdash; Teacher Controls</h2>
+  <div class="card"><h2>Practice Trainers</h2>
     <label>Mode <select id="pMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
     <label>Words <select id="pCount"><option>5</option><option selected>10</option><option>20</option><option>30</option><option>50</option></select></label>
     <button class="btn gold" id="pStart">Start Test</button>
@@ -184,7 +174,7 @@ body.student-mode .adminOnly{display:none!important}
   </div>
 </section>
 <section id="view-worksheet" class="hidden">
-  <div class="card"><h2>Teacher Worksheets &mdash; Print for Home Practice</h2>
+  <div class="card"><h2>Worksheets &mdash; Print for Home Practice</h2>
     <label>Student <select id="wStu"></select></label>
     <label>Round <select id="wMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
     <label>Words <select id="wCount"><option>5</option><option selected>10</option><option>20</option><option>30</option><option>50</option></select></label>
@@ -257,8 +247,15 @@ body.student-mode .adminOnly{display:none!important}
 </main>
 <div id="printArea"></div>
 
-
-
-
+<!-- Scripts run AFTER the body is parsed: init touches DOM elements directly -->
+<script src="d1.js"></script>
+<script src="d2.js"></script>
+<script src="d3.js"></script>
+<script src="d4.js"></script>
+<script src="d5.js"></script>
+<script src="d6.js"></script>
+<script src="d7.js"></script>
+<script src="app.js"></script>
+<script src="gate.js"></script>
 </body>
 </html>

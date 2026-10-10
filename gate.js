@@ -17,7 +17,7 @@ function sha256hex(s){
   });
 }
 function getAdminHash(){try{return localStorage.getItem(ADMIN_KEY);}catch(e){return null;}}
-var HIDE_STU=["eAddReg","eQPer","eStartRound","eReset","ePrint","pCount","pMode","wCount","wMode","wKey","wStu"];
+var HIDE_STU=["eAddReg","eQPer","eStartRound","eReset","ePrint","pCount","pMode","wStu"];
 function studentLogin(){
   var n=gEl("gName").value.trim(), r=gEl("gReg").value.trim(), err=gEl("gErr");
   err.textContent="";
