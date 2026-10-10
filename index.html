@@ -6,7 +6,8 @@
 <title>Spelling Star — Online Portal (Self Scale Academy)</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:#0e1f3d;color:#182230}
+body{margin:0;font-family:"Times New Roman",Times,serif;background:#0e1f3d;color:#182230}
+button,input,select,textarea{font-family:"Times New Roman",Times,serif}
 header{background:linear-gradient(90deg,#123A72,#0e2c57);color:#fff;padding:14px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:4px solid #F59E0B}
 header .logo{font-size:26px}
 header h1{font-size:20px;margin:0}
@@ -99,6 +100,12 @@ th,td{padding:5px 6px}
 input.ans{font-size:20px}
 header h1{font-size:17px}
 }
+/* ===== LIGHT (white) MODE ===== */
+body.light-mode{background:#edf1f8}
+body.light-mode .card{box-shadow:0 2px 10px rgba(18,58,114,.14);border:1px solid #d9e2f0}
+body.light-mode .note{color:#4a5568}
+body.light-mode input[type=text],body.light-mode select{background:#fff}
+body.light-mode table{box-shadow:none}
 @media print{
   body>*{display:none!important}
   #printArea{display:block!important;color:#000;background:#fff;font-size:12px}
@@ -138,12 +145,20 @@ body.student-mode .adminOnly{display:none!important}
     <img src="img/teacher.jpg" class="gTeacherPhoto" alt="Muhammad Jahid Hasan">
     <div class="gTeacherName">Muhammad Jahid Hasan<br><small>Owner &amp; Teacher &mdash; Self Scale Academy</small></div>
     <h1>Spelling Star &mdash; Online Portal</h1>
-    <p class="gsub">Self Scale Academy &middot; Enter your full name + registration number</p>
-    <input id="gName" placeholder="Full name (as on your card)" autocomplete="off">
-    <input id="gReg" placeholder="Registration no. (e.g. KQZ26000652)" autocomplete="off">
-    <button class="gbtn" id="gEnter">Enter</button>
+    <p class="gsub">Self Scale Academy &middot; Enter your name first</p>
+    <div id="gateStep1">
+      <input id="gName" placeholder="Full name (as on your card)" autocomplete="off">
+      <button class="gbtn" id="gNext">Continue</button>
+    </div>
+    <div id="gateStep2" class="hidden">
+      <p class="gsub" id="gWho"></p>
+      <input id="gReg" placeholder="Registration no. (e.g. KQZ26000652)" autocomplete="off">
+      <button class="gbtn" id="gEnter">Enter</button>
+      <button class="ghost" id="gBack">&larr; Change name</button>
+    </div>
     <p class="gerr" id="gErr"></p>
     <button class="ghost" id="gTeacher">Teacher</button>
+    <button class="ghost" id="gTheme">&#9728;&#65039; Light mode</button>
     <p class="gnote">Only registered Spelling Star students can enter.</p>
   </div>
   <div class="gCard hidden" id="gateTeacher">
@@ -166,13 +181,14 @@ body.student-mode .adminOnly{display:none!important}
   <div class="logo">&#11088;</div>
   <div><h1>Spelling Star &mdash; Online Portal</h1><div class="sub">Self Scale Academy &middot; Official Level 4 Guide Bank (442 words) &middot; Student Practice Gate</div></div>
   <div id="studentChip">No student selected</div>
+  <button id="themeBtn" class="btn ghost" style="margin:0" title="Dark / light mode">&#9728;&#65039; Light</button>
 </header>
 <nav>
   <button data-v="home" class="on">Home &amp; Students</button>
   <button data-v="practice">Practice Trainers</button>
   <button data-v="worksheet">Worksheets (Print)</button>
   <button data-v="exam">Examiner / Tournament</button>
-  <button data-v="history">Score History</button><button data-v="results" class="adminOnly">&#128202; Results Platform</button><button data-v="stage" class="adminOnly">&#127908; Stage Guide</button><button id="navExit" style="display:none">&#215; Exit</button>
+  <button data-v="history">Score History</button><button data-v="results" class="adminOnly">&#128202; Results Platform</button><button data-v="stage" class="adminOnly">&#127908; Stage Guide</button><button data-v="settings" class="adminOnly">&#9881;&#65039; Teacher Settings</button><button data-v="pages" class="adminOnly">&#128196; Daily Pages</button><button id="navExit" style="display:none">&#215; Exit</button>
 </nav>
 <main>
 <div id="msgBar" class="msgBar"></div>
@@ -188,7 +204,10 @@ body.student-mode .adminOnly{display:none!important}
 <section id="view-practice" class="hidden">
   <div class="card"><h2>Practice Trainers</h2>
     <label>Mode <select id="pMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
-    <label>Words <select id="pCount"><option>5</option><option selected>10</option><option>20</option><option>30</option><option>50</option></select></label>
+    <label>Words <select id="pLang"><option value="nobn" selected>No Bangla (words only)</option><option value="bn">With Bangla</option></select></label>
+    <label>How many words <input type="number" id="pCount" min="1" max="442" value="10" style="width:80px"></label>
+    <span id="pPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="442">All</button></span><br>
+    <label class="adminOnly">Guide pages (teacher) <input type="number" id="pPgLo" min="111" max="133" placeholder="111" style="width:70px"> &ndash; <input type="number" id="pPgHi" min="111" max="133" placeholder="133" style="width:70px"></label>
     <button class="btn gold" id="pStart">Start Test</button>
     <div id="pBox" style="margin-top:12px"></div>
   </div>
@@ -209,7 +228,9 @@ body.student-mode .adminOnly{display:none!important}
   <div class="card"><h2>Worksheets &mdash; Print for Home Practice</h2>
     <label class="adminOnly">Student <select id="wStu"></select></label>
     <label>Round <select id="wMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
-    <label>Words <select id="wCount"><option>5</option><option selected>10</option><option>20</option><option>30</option><option>50</option></select></label>
+    <label>How many words <input type="number" id="wCount" min="1" max="442" value="10" style="width:80px"></label>
+    <span id="wPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="442">All</button></span>
+    <label>Words <select id="wLang"><option value="nobn">No Bangla (words only)</option><option value="bn" selected>With Bangla</option></select></label>
     <label><input type="checkbox" id="wKey"> Include answer key page</label><br>
     <label><input type="checkbox" id="wBangla" checked> Bangla meaning</label>
     <label><input type="checkbox" id="wDef" checked> English meaning / definition</label>
@@ -261,6 +282,38 @@ body.student-mode .adminOnly{display:none!important}
     <label>Total <input type="text" id="mkTo" placeholder="0" style="width:70px"></label>
     <button class="btn gold" id="mkAdd">Add Score</button>
     <p class="gerr" id="mkErr" style="min-height:18px"></p>
+  </div>
+</section>
+<section id="view-settings" class="hidden">
+  <div class="card"><h2>&#9881;&#65039; Teacher Settings</h2>
+    <p class="note">One place for all teacher controls. Saved on this device.</p>
+    <label>Default round <select id="sMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
+    <label>Default words mode <select id="sLang"><option value="nobn">No Bangla (words only)</option><option value="bn">With Bangla</option></select></label><br>
+    <label>Default word count <input type="number" id="sCount" min="1" max="442" value="10" style="width:80px"></label>
+    <label>School name <input type="text" id="sSchool" value="Self Scale Academy" style="width:240px"></label><br>
+    <label><input type="checkbox" id="sSkip" checked> Allow &ldquo;Next (teacher)&rdquo; skip button in practice</label><br>
+    <label><input type="checkbox" id="sScale" checked> Show grade-scale note on score cards</label><br>
+    <button class="btn gold" id="sSave">Save Settings</button>
+  </div>
+  <div class="card"><h2>Students (registered)</h2>
+    <div id="settStu"></div>
+    <p class="note">Only the 3 registered Spelling Star students. Photos are assigned under Results Platform &rarr; Student Photos.</p>
+  </div>
+</section>
+<section id="view-pages" class="hidden">
+  <div class="card"><h2>&#128196; Daily Pages &mdash; word by word, page by page</h2>
+    <p class="note">The 442 official words come from guide pages 111&ndash;133. Pick the pages for today's test &mdash; daily practice makes them ready word by word.</p>
+    <label>Student <select id="pgStu"></select></label><br>
+    <label>From page <input type="number" id="pgLo" min="111" max="133" value="111" style="width:80px"></label>
+    <label>To page <input type="number" id="pgHi" min="111" max="133" value="115" style="width:80px"></label>
+    <label>How many words <input type="number" id="pgCount" min="1" max="442" value="10" style="width:80px"></label>
+    <label>Mode <select id="pgMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label><br>
+    <button class="btn gold big" id="pgStart">Start Daily Test</button>
+    <p class="gerr" id="pgErr" style="min-height:18px"></p>
+  </div>
+  <div class="card"><h2>Coverage Tracker &mdash; last 7 days</h2>
+    <div id="covBox"></div>
+    <p class="note">A page turns green once it has been tested on any day.</p>
   </div>
 </section>
 <section id="view-history" class="hidden">

@@ -23,12 +23,55 @@ function say(msg,kind){
   _msgT=setTimeout(function(){b.className="msgBar";},6000);
 }
 
+/* ---------- Teacher Settings (one place for all teacher controls) ---------- */
+var SETT={pMode:"spelling",pLang:"nobn",pCount:10,passSkip:true,school:"Self Scale Academy",showGradeScale:true};
+function loadSettings(){
+  try{var s=JSON.parse(localStorage.getItem("ss_settings")||"null");if(s)SETT=Object.assign({},SETT,s);}catch(e){}
+}
+function saveSettings(){
+  try{localStorage.setItem("ss_settings",JSON.stringify(SETT));}catch(e){}
+}
+function schoolName(){return (SETT.school||"").trim()||"Self Scale Academy";}
+function applySettings(){
+  if($("pMode"))$("pMode").value=SETT.pMode;
+  if($("pLang"))$("pLang").value=SETT.pLang;
+  if($("pCount"))$("pCount").value=SETT.pCount;
+  if($("wCount"))$("wCount").value=SETT.pCount;
+  if($("sMode"))$("sMode").value=SETT.pMode;
+  if($("sLang"))$("sLang").value=SETT.pLang;
+  if($("sCount"))$("sCount").value=SETT.pCount;
+  if($("sSkip"))$("sSkip").checked=!!SETT.passSkip;
+  if($("sScale"))$("sScale").checked=!!SETT.showGradeScale;
+  if($("sSchool"))$("sSchool").value=schoolName();
+}
+function renderSettingsStu(){
+  var h="<table><tr><th>#</th><th>Student</th><th>Registration No.</th><th>Photo</th></tr>";
+  STUDENTS.forEach(function(s,i){
+    h+="<tr><td>"+(i+1)+"</td><td>"+esc(s.n)+"</td><td>"+esc(s.id)+"</td><td>"+(studentPhotoSrc(s)?"set":"not set")+"</td></tr>";
+  });
+  $("settStu").innerHTML=h+"</table>";
+}
+
+/* ---------- Dark / Light (white) mode — remembered per device ---------- */
+function getTheme(){try{return localStorage.getItem("ss_theme")||"dark";}catch(e){return "dark";}}
+function applyTheme(){
+  var light=getTheme()==="light";
+  document.body.classList.toggle("light-mode",light);
+  var b=$("themeBtn");if(b)b.innerHTML=light?"&#127769; Dark":"&#9728;&#65039; Light";
+  var g=$("gTheme");if(g)g.innerHTML=light?"&#127769; Dark mode":"&#9728;&#65039; Light mode";
+}
+function toggleTheme(){
+  var t=getTheme()==="light"?"dark":"light";
+  try{localStorage.setItem("ss_theme",t);}catch(e){}
+  applyTheme();
+}
+
 var CURRENT=null;
 var HISTORY=[];
 try{HISTORY=JSON.parse(localStorage.getItem("ss_history")||"[]");}catch(e){HISTORY=[];}
 
 var VIEWS=["home","practice","worksheet","exam","history"];
-function show(v){VIEWS.forEach(function(x){$("view-"+x).classList.toggle("hidden",x!==v);});document.querySelectorAll("nav button").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});if(v==="history")renderHistory();window.scrollTo(0,0);}
+function show(v){VIEWS.forEach(function(x){$("view-"+x).classList.toggle("hidden",x!==v);});document.querySelectorAll("nav button").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});if(v==="history")renderHistory();if(v==="pages"){fillPgStu();renderCov();}if(v==="settings"){renderSettingsStu();}window.scrollTo(0,0);}
 
 /* ---------- Students ---------- */
 function allStudents(){
@@ -103,15 +146,39 @@ function gapPattern(w){
 }
 function startPractice(){
   if(!CURRENT){say("Select a student first \u2014 name entry is mandatory for scoring.","warn");return;}
-  var mode=$("pMode").value, count=parseInt($("pCount").value,10);
-  var items, i;
-  if(mode==="super"){items=shuffle(SUPER).slice(0,count);}
-  else{items=shuffle(BANK).slice(0,count);}
-  PR={mode:mode,items:items,idx:0,score:0,done:false,student:CURRENT?CURRENT.name:"Guest",sid:CURRENT?CURRENT.id:""};
+  var mode=$("pMode").value;
+  var count=parseInt($("pCount").value,10);
+  var pool=(mode==="super")?SUPER:BANK;
+  if(!(count>=1)){count=10;$("pCount").value=10;}
+  count=Math.min(count,pool.length);
+  var items=shuffle(pool).slice(0,count);
+  /* Teacher page filter: guide pages 111-133 (adminOnly inputs; students see empty = all pages) */
+  var lo=parseInt($("pPgLo").value,10), hi=parseInt($("pPgHi").value,10);
+  var pageLo=null, pageHi=null;
+  if(mode!=="super"&&lo>=111&&hi<=133&&lo<=hi){
+    pageLo=lo;pageHi=hi;
+    var fpool=pool.filter(function(b){return b.page>=lo&&b.page<=hi;});
+    if(!fpool.length){say("No words found on pages "+lo+"\u2013"+hi+".","warn");return;}
+    items=shuffle(fpool).slice(0,Math.min(count,fpool.length));
+  }
+  PR={mode:mode,lang:$("pLang").value,items:items,idx:0,score:0,done:false,student:CURRENT?CURRENT.name:"Guest",sid:CURRENT?CURRENT.id:"",pageLo:pageLo,pageHi:pageHi};
   renderQ();
 }
 function qPrompt(it){
+  var nobn=PR.lang!=="bn";
   if(PR.mode==="super"){return "<div class='clue'>Category: <b>"+esc(it.cat)+"</b><br>Clue: "+esc(it.c)+"</div>";}
+  if(nobn){
+    /* Competition-style: NO Bangla anywhere. Spelling = look, remember, spell;
+       Jumbled/Gaps = English meaning + part of speech only. */
+    if(PR.mode==="spelling"){
+      return "<div class='clue'>Part of speech: <i><b>"+esc(it.pos)+"</b></i><br>Look at the word, remember it, then spell it.</div>"+
+             "<button class='btn ghost' id='qFlash'>Show the word (3 sec)</button>"+
+             "<div id='qFlashWord' class='jumble' style='display:none'>"+esc(it.w)+"</div>";
+    }
+    if(PR.mode==="jumbled"){return "<div class='clue'>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div><div class='jumble'>"+esc(jumble(it.w))+"</div>";}
+    if(PR.mode==="gaps"){return "<div class='clue'>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div><div class='gaps'>"+esc(gapPattern(it.w))+"</div>";}
+    return "";
+  }
   var clue="<div class='clue'><span class='bn'>"+esc(it.bn)+"</span><br>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div>";
   if(PR.mode==="jumbled"){return clue+"<div class='jumble'>"+esc(jumble(it.w))+"</div>";}
   if(PR.mode==="gaps"){return clue+"<div class='gaps'>"+esc(gapPattern(it.w))+"</div>";}
@@ -127,15 +194,20 @@ function renderQ(){
   h+=qPrompt(it);
   if(PR.mode==="spelling"&&it.pron){h+="<button class='btn ghost' id='qHint'>Pronunciation hint</button><span id='hintTxt'></span>";}
   h+="<br><input type='text' class='ans' id='qAns' autocomplete='off' placeholder='Type the word'>";
-  h+="<br><button class='btn gold big' id='qCheck'>Check</button><button class='btn ghost' id='qSkip'>Next (teacher)</button>";
+  h+="<br><button class='btn gold big' id='qCheck'>Check</button>"+(SETT.passSkip?"<button class='btn ghost' id='qSkip'>Next (teacher)</button>":"");
   h+="<div class='fb' id='qFb'></div>";
   box.innerHTML=h;
   $("qAns").focus();
   $("qAns").addEventListener("keydown",function(e){if(e.key==="Enter")checkQ(false);});
   $("qCheck").addEventListener("click",function(){checkQ(false);});
-  $("qSkip").addEventListener("click",function(){checkQ(true);});
+  var sk=$("qSkip");if(sk)sk.addEventListener("click",function(){checkQ(true);});
   var hint=$("qHint");
   if(hint){hint.addEventListener("click",function(){$("hintTxt").textContent=" "+it.pron;});}
+  var fl=$("qFlash");
+  if(fl){fl.addEventListener("click",function(){
+    var w=$("qFlashWord");w.style.display="block";fl.disabled=true;
+    setTimeout(function(){w.style.display="none";},3000);
+  });}
 }
 function checkQ(skip){
   if(PR.locked)return;
@@ -150,19 +222,22 @@ function modeName(m){return {spelling:"Spelling",jumbled:"Jumbled Word",gaps:"Fi
 function finishPractice(){
   PR.done=true;
   var total=PR.items.length, pct=total?Math.round(PR.score*1000/total)/10:0;
-  var card={date:nowStr(),student:PR.student,id:PR.sid,test:modeName(PR.mode)+" (Practice)",obtained:PR.score,total:total,pct:pct,grade:grade(pct)};
+  var wmode=PR.lang==="bn"?"With Bangla":"No Bangla";
+  var card={date:nowStr(),student:PR.student,id:PR.sid,test:modeName(PR.mode)+" (Practice · "+wmode+")",obtained:PR.score,total:total,pct:pct,grade:grade(pct)};
   HISTORY.push(card);
   try{localStorage.setItem("ss_history",JSON.stringify(HISTORY));}catch(e){}
   $("pBox").innerHTML=scoreCardHTML(card)+"<button class='btn gold' onclick='startPractice()'>New Test</button>";
+  if(PR.pageLo){recordCoverage(PR.pageLo,PR.pageHi);}
 }
 function scoreCardHTML(c){
+  var gnote=SETT.showGradeScale?" <span class='note'>(Bangladesh school grade scale)</span>":"";
   return "<div class='card' style='box-shadow:none;border:2px solid #123A72'><h2>Score Card</h2>"+
   "<table><tr><th>Student</th><td>"+esc(c.student)+(c.id?" ("+esc(c.id)+")":"")+"</td></tr>"+
   "<tr><th>Date</th><td>"+esc(c.date)+"</td></tr>"+
   "<tr><th>Round / Test</th><td>"+esc(c.test)+"</td></tr>"+
   "<tr><th>Obtained</th><td>"+c.obtained+" / "+c.total+"</td></tr>"+
   "<tr><th>Percentage</th><td>"+c.pct+"%</td></tr>"+
-  "<tr><th>Grade</th><td><b>"+esc(c.grade)+"</b> <span class='note'>(Bangladesh school grade scale)</span></td></tr></table></div>";
+  "<tr><th>Grade</th><td><b>"+esc(c.grade)+"</b>"+gnote+"</td></tr></table></div>";
 }
 
 /* ---------- History ---------- */
@@ -359,11 +434,18 @@ function wsLiveInfo(){
   var n=Math.min(parseInt($("wCount").value,10)||10,($("wMode").value==="super"?SUPER:BANK).length);
   $("wLive").textContent="\uD83D\uDCC4 "+(($("wMode").value==="super"?SUPER:BANK).length)+" words in bank \u2022 worksheet will have exactly "+n+" rows.";
 }
+/* "Words" preset: No Bangla (words only) vs With Bangla — competition has no Bangla */
+function wsLangSync(){
+  var nobn=$("wLang").value==="nobn";
+  $("wBangla").checked=!nobn;
+  $("wDef").checked=!nobn;
+  $("wEx").checked=!nobn;
+}
 function genWorksheet(){
   var mode=$("wMode").value, items=wsItems(), stu=STUDENTS[parseInt($("wStu").value,10)]||{n:"",id:""};
   var rows=Math.max(1,parseInt($("wRows").value,10)||10);
   var fv=$("wFont").value, fs=(fv==="auto")?wsAutoFont(rows):(parseInt(fv,10)||14);
-  var head="<div class='wsHead'><h2>Self Scale Academy</h2><div class='wsTitle'>Spelling Practice Worksheet \u2014 "+esc(modeName(mode))+"</div><div class='wsMeta'>Student: <b>"+esc(stu.n)+(stu.id?" ("+esc(stu.id)+")":"")+"</b> &nbsp; Date: __________ &nbsp; Score: ______ / "+items.length+"</div></div>";
+  var head="<div class='wsHead'><h2>"+esc(schoolName())+"</h2><div class='wsTitle'>Spelling Practice Worksheet \u2014 "+esc(modeName(mode))+"</div><div class='wsMeta'>Student: <b>"+esc(stu.n)+(stu.id?" ("+esc(stu.id)+")":"")+"</b> &nbsp; Date: __________ &nbsp; Score: ______ / "+items.length+"</div></div>";
   var h="<div class='wsWrap' style='font-size:"+fs+"px;font-family:\"Times New Roman\",Times,serif'>";
   for(var p=0;p<items.length;p+=rows){
     h+="<div class='wsPage'>"+(p===0?head:"");
@@ -371,12 +453,13 @@ function genWorksheet(){
       var it=items[i];
       h+="<div class='wsQ'><span class='wsN'>"+(i+1)+".</span><span class='wsP'>"+wsQuestionHTML(it,mode)+"</span><span class='wsA'></span></div>";
     }
-    h+="<div class='wsFoot'>Prepared by Muhammad Jahid Hasan \u2014 Self Scale Academy &nbsp;|&nbsp; Page "+(Math.floor(p/rows)+1)+" of "+Math.ceil(items.length/rows)+"</div>";
+    h+="<div class='wsFoot'>Prepared by Muhammad Jahid Hasan \u2014 "+esc(schoolName())+" &nbsp;|&nbsp; Page "+(Math.floor(p/rows)+1)+" of "+Math.ceil(items.length/rows)+"</div>";
     h+="</div>";
   }
   if($("wKey").checked){
+    var showBn=$("wBangla").checked;
     h+="<div class='wsKey'><h2>Answer Key \u2014 for the teacher only</h2><table><tr><th>No.</th><th>Word</th><th>Meaning</th></tr>";
-    items.forEach(function(it,i){h+="<tr><td>"+(i+1)+"</td><td><b>"+esc(it.w)+"</b></td><td>"+esc((it.bn?it.bn+" \u2014 ":"")+(it.c||it.en||""))+"</td></tr>";});
+    items.forEach(function(it,i){h+="<tr><td>"+(i+1)+"</td><td><b>"+esc(it.w)+"</b></td><td>"+esc((showBn&&it.bn?it.bn+" \u2014 ":"")+(it.c||it.en||""))+"</td></tr>";});
     h+="</table></div>";
   }
   h+="</div>";
@@ -424,7 +507,7 @@ function genReport(){
   var avg=Math.round(list.reduce(function(a,b){return a+b.pct;},0)/list.length*10)/10;
   var first=list[0].pct,last=list[list.length-1].pct;
   var trend=last>first?"Improving \u2191":(last<first?"Needs work \u2193":"Steady \u2192");
-  var h="<div class='wsHead' style=\"font-family:'Times New Roman',Times,serif\"><h2>Self Scale Academy</h2><div class='wsTitle'>Student Progress Report</div><div class='wsMeta'>Student: <b>"+esc(n)+"</b>"+(st.id?" ("+esc(st.id)+")":"")+"</div></div>";
+  var h="<div class='wsHead' style=\"font-family:'Times New Roman',Times,serif\"><h2>"+esc(schoolName())+"</h2><div class='wsTitle'>Student Progress Report</div><div class='wsMeta'>Student: <b>"+esc(n)+"</b>"+(st.id?" ("+esc(st.id)+")":"")+"</div></div>";
   h+="<table><tr><th>Tests taken</th><td>"+list.length+"</td></tr><tr><th>Best score</th><td>"+best.pct+"% ("+esc(best.test)+", "+esc(best.date)+")</td></tr><tr><th>Average</th><td>"+avg+"%</td></tr><tr><th>Trend (first \u2192 last)</th><td><b>"+trend+"</b> ("+first+"% \u2192 "+last+"%)</td></tr></table>";
   h+="<h3>Dated test history</h3>"+resTableHTML(list.slice().reverse());
   h+="<p style='margin-top:26px'>Teacher's Signature: ______________________ &nbsp;&nbsp; Date: __________ &nbsp;&nbsp; Seal: __________</p>";
@@ -456,7 +539,7 @@ function certHTML(){
   var ti=$("certTest").value, c=ti===""?null:list[parseInt(ti,10)];
   var line=c?("for outstanding performance in <b>"+esc(c.test)+"</b><br>Score: <b>"+c.obtained+" / "+c.total+" ("+c.pct+"% — Grade "+esc(c.grade)+")</b><br>Date: "+esc(c.date))
             :"for dedicated preparation and outstanding commitment<br>to the Spelling Star 2026 championship training";
-  return "<div class='cert'><div style='font-size:40px'>\u2B50</div><h2>SELF SCALE ACADEMY</h2><h1>Certificate of Achievement</h1>"+
+  return "<div class='cert'><div style='font-size:40px'>\u2B50</div><h2>"+esc(schoolName().toUpperCase())+"</h2><h1>Certificate of Achievement</h1>"+
   "<p>This certificate is proudly presented to</p><div class='cname'>"+esc(n)+"</div>"+
   (st.id?"<p>Registration No. <b>"+esc(st.id)+"</b></p>":"")+
   "<p>"+line+"</p>"+
@@ -470,7 +553,7 @@ function dlWorksheetDoc(){
   dlDoc("Spelling_Worksheet_"+$("wMode").value+".doc",$("printArea").innerHTML);
 }
 function printReport(){doPrint("<div style=\"font-family:'Times New Roman',Times,serif\">"+$("repBox").innerHTML+"</div>");}
-function printResults(){doPrint("<h2>Self Scale Academy — Results Dashboard</h2>"+resTableHTML(resRows()));}
+function printResults(){doPrint("<h2>"+esc(schoolName())+" — Results Dashboard</h2>"+resTableHTML(resRows()));}
 function dlResultsCsv(){
   var rows=resRows();if(!rows.length){say("No scores to export yet.","warn");return;}
   var csv="Date,Student,ID,Test,Obtained,Total,Percent,Grade\n";
@@ -484,6 +567,52 @@ function dlDoc(filename,html){
   var blob=new Blob(["\ufeff"+doc],{type:"application/msword"});
   var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;
   document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},800);
+}
+/* ---------- Daily Pages (guide pages 111-133, word by word) ---------- */
+var PG_MIN=111, PG_MAX=133;
+function covLoad(){try{return JSON.parse(localStorage.getItem("ss_cov")||"{}");}catch(e){return{};}}
+function covSave(c){try{localStorage.setItem("ss_cov",JSON.stringify(c));}catch(e){}}
+function todayKey(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function recordCoverage(lo,hi){
+  var c=covLoad(),k=todayKey();
+  c[k]=c[k]||[];
+  for(var p=lo;p<=hi;p++){if(c[k].indexOf(p)<0)c[k].push(p);}
+  covSave(c);
+}
+function renderCov(){
+  var c=covLoad(), days=Object.keys(c).sort().slice(-7);
+  var covered={};
+  days.forEach(function(d){c[d].forEach(function(p){covered[p]=1;});});
+  var h="<p class='note'>Last 7 days with tests: "+(days.length?esc(days.join(", ")):"none yet")+"</p><div class='grid'>";
+  for(var p=PG_MIN;p<=PG_MAX;p++){
+    var on=covered[p];
+    h+="<span class='chip' style='"+(on?"background:#e2f4e8;border-color:#1e8e4f;font-weight:800":"")+"'>p."+p+(on?" ✓":"")+"</span>";
+  }
+  h+="</div><p class='note'>Covered: "+Object.keys(covered).length+" / "+(PG_MAX-PG_MIN+1)+" pages.</p>";
+  $("covBox").innerHTML=h;
+}
+function fillPgStu(){
+  var h="";
+  STUDENTS.forEach(function(s,i){h+="<option value='"+i+"'"+(CURRENT&&CURRENT.name===s.n?" selected":"")+">"+esc(s.n)+(s.id?" · "+esc(s.id):"")+"</option>";});
+  $("pgStu").innerHTML=h;
+}
+function startDailyTest(){
+  var err=$("pgErr");err.textContent="";
+  var lo=parseInt($("pgLo").value,10), hi=parseInt($("pgHi").value,10);
+  if(!(lo>=PG_MIN&&hi<=PG_MAX&&lo<=hi)){err.textContent="Pages must be "+PG_MIN+"–"+PG_MAX+", from ≤ to.";return;}
+  var si=parseInt($("pgStu").value,10), st=STUDENTS[si];
+  if(!st){err.textContent="Pick a student first.";return;}
+  setStudent(st.n,st.id);
+  var mode=$("pgMode").value;
+  var pool=BANK.filter(function(b){return b.page>=lo&&b.page<=hi;});
+  if(!pool.length){err.textContent="No words found on pages "+lo+"–"+hi+".";return;}
+  var count=parseInt($("pgCount").value,10);
+  if(!(count>=1)){count=10;$("pgCount").value=10;}
+  count=Math.min(count,pool.length);
+  PR={mode:mode,lang:SETT.pLang,items:shuffle(pool).slice(0,count),idx:0,score:0,done:false,student:st.n,sid:st.id,pageLo:lo,pageHi:hi};
+  say("Daily test: pages "+lo+"–"+hi+" · "+count+" words · "+st.n+".","ok");
+  show("practice");
+  renderQ();
 }
 /* ---------- Print ---------- */
 
@@ -502,9 +631,10 @@ $("ePrint").addEventListener("click",function(){if(EX)printExam();});
 $("hPrint").addEventListener("click",printHistory);
 $("wGen").addEventListener("click",genWorksheet);
 $("wDoc").addEventListener("click",dlWorksheetDoc);
+$("wLang").addEventListener("change",wsLangSync);
 ["wMode","wCount"].forEach(function(id){$(id).addEventListener("change",wsLiveInfo);});
 $("resCsv").addEventListener("click",dlResultsCsv);
-$("resDoc").addEventListener("click",function(){if(resRows().length)dlDoc("SelfScaleAcademy_Results.doc","<h2>Self Scale Academy \u2014 Results Dashboard</h2>"+resTableHTML(resRows()));else say("No scores to export yet.","warn");});
+$("resDoc").addEventListener("click",function(){if(resRows().length)dlDoc("SelfScaleAcademy_Results.doc","<h2>"+esc(schoolName())+" — Results Dashboard</h2>"+resTableHTML(resRows()));else say("No scores to export yet.","warn");});
 $("repDoc").addEventListener("click",function(){if($("repBox").innerHTML)dlDoc("Progress_Report.doc",$("repBox").innerHTML);else say("Generate the report first.","warn");});
 $("certDoc").addEventListener("click",function(){if($("certBox").innerHTML)dlDoc("Certificate.doc",$("certBox").innerHTML);else say("Generate the certificate first.","warn");});
 $("mkAdd").addEventListener("click",addOfflineMark);
@@ -519,6 +649,21 @@ $("certPrint").addEventListener("click",function(){if($("certBox").innerHTML)pri
 $("wPrint").addEventListener("click",function(){window.print();});
 renderStudents();
 wsLiveInfo();
+loadSettings();
+applySettings();
+applyTheme();
+$("themeBtn").addEventListener("click",toggleTheme);
+var gt=$("gTheme");if(gt)gt.addEventListener("click",toggleTheme);
+document.querySelectorAll("#pPresets button").forEach(function(b){b.addEventListener("click",function(){$("pCount").value=b.getAttribute("data-n");});});
+document.querySelectorAll("#wPresets button").forEach(function(b){b.addEventListener("click",function(){$("wCount").value=b.getAttribute("data-n");wsLiveInfo();});});
+$("sSave").addEventListener("click",function(){
+  SETT.pMode=$("sMode").value;SETT.pLang=$("sLang").value;
+  var c=parseInt($("sCount").value,10);SETT.pCount=(c>=1&&c<=442)?c:10;
+  SETT.passSkip=$("sSkip").checked;SETT.showGradeScale=$("sScale").checked;
+  SETT.school=$("sSchool").value.trim()||"Self Scale Academy";
+  saveSettings();applySettings();say("Settings saved.","ok");
+});
+$("pgStart").addEventListener("click",startDailyTest);
 var reg=allStudents().reg;
 if(reg.length)setStudent(reg[0].n,reg[0].id);
 newExam();

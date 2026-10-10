@@ -4,6 +4,8 @@
 "use strict";
 VIEWS.push("stage");
 VIEWS.push("results");
+VIEWS.push("settings");
+VIEWS.push("pages");
 window.stagePrint=function(){
   var el=document.getElementById("view-stage");
   doPrint("<h2>Spelling Star &mdash; Teacher's Stage Guide</h2>"+el.innerHTML);
@@ -63,12 +65,34 @@ function sha256hex(ascii){
 }
 function getAdminHash(){try{return localStorage.getItem(ADMIN_KEY);}catch(e){return null;}}
 var HIDE_STU=["eAddReg","eQPer","eStartRound","eReset","ePrint","wStu"];
-function studentLogin(){
-  var n=gEl("gName").value.trim(), r=gEl("gReg").value.trim(), err=gEl("gErr");
+/* Student gate = two separate steps. Step 1: NAME only. Step 2: REGISTRATION NO. only. */
+var G_NAME=null;
+function gateStep1Next(){
+  var n=gEl("gName").value.trim(), err=gEl("gErr");
   err.textContent="";
-  if(!n||!r){err.textContent="Please enter your full name and registration number.";return;}
-  var hit=STUDENTS.find(function(s){return s.n.toLowerCase()===n.toLowerCase()&&s.id===r;});
-  if(!hit){err.textContent="Name or registration number does not match. Please check with your teacher.";return;}
+  if(!n){err.textContent="Please enter your full name.";return;}
+  var hit=STUDENTS.find(function(s){return s.n.toLowerCase()===n.toLowerCase();});
+  if(!hit){err.textContent="We can't find this name on our registered list. Please check with your teacher.";return;}
+  G_NAME=hit.n;
+  gEl("gateStep1").classList.add("hidden");
+  gEl("gateStep2").classList.remove("hidden");
+  gEl("gWho").textContent="Welcome, "+G_NAME+" — now enter your registration number.";
+  gEl("gReg").value="";
+  gEl("gReg").focus();
+}
+function gateBack(){
+  G_NAME=null;
+  gEl("gateStep2").classList.add("hidden");
+  gEl("gateStep1").classList.remove("hidden");
+  gEl("gErr").textContent="";
+}
+function studentLogin(){
+  var r=gEl("gReg").value.trim(), err=gEl("gErr");
+  err.textContent="";
+  if(!G_NAME){gateBack();return;}
+  if(!r){err.textContent="Please enter your registration number.";return;}
+  var hit=STUDENTS.find(function(s){return s.n.toLowerCase()===G_NAME.toLowerCase();});
+  if(!hit||hit.id!==r){err.textContent="That registration number does not match "+G_NAME+". Please try again.";return;}
   enterApp("student",hit.n,hit.id);
 }
 function teacherOpen(){
@@ -129,8 +153,10 @@ function enterApp(role,name,id){
 function exitApp(){try{sessionStorage.removeItem("ssa_session");}catch(e){}location.reload();}
 document.addEventListener("DOMContentLoaded",function(){
   document.body.classList.add("locked");
+  gEl("gNext").addEventListener("click",gateStep1Next);
+  gEl("gName").addEventListener("keydown",function(e){if(e.key==="Enter")gateStep1Next();});
+  gEl("gBack").addEventListener("click",gateBack);
   gEl("gEnter").addEventListener("click",studentLogin);
-  gEl("gName").addEventListener("keydown",function(e){if(e.key==="Enter")studentLogin();});
   gEl("gReg").addEventListener("keydown",function(e){if(e.key==="Enter")studentLogin();});
   gEl("gTeacher").addEventListener("click",teacherOpen);
   gEl("tchBack").addEventListener("click",teacherBack);
