@@ -40,6 +40,43 @@ function saveSettings(){
   try{localStorage.setItem("ss_settings",JSON.stringify(SETT));}catch(e){}
 }
 function schoolName(){return (SETT.school||"").trim()||"Self Scale Academy";}
+
+/* ---------- Super Word filters (category / difficulty / Top Prep elite) ---------- */
+function superPool(cat,tier,topOnly){
+  return SUPER.filter(function(s){
+    if(cat&&s.cat!==cat)return false;
+    if(tier&&s.t!==tier)return false;
+    if(topOnly&&!s.topPrep)return false;
+    return true;
+  });
+}
+function superLiveText(pool){
+  return SUPER.length.toLocaleString()+" words · showing "+pool.length.toLocaleString();
+}
+function pSuperSel(){return {cat:$("pCat").value,tier:$("pTier").value,top:$("pTop").checked};}
+function wSuperSel(){return {cat:$("wCat").value,tier:$("wTier").value,top:$("wTop").checked};}
+function superDesc(sel){
+  var p=[sel.cat||"All categories",sel.tier||"All levels"];
+  if(sel.top)p.push("Top Prep");
+  return p.join(" · ");
+}
+function updatePSuperLive(){
+  var el=$("pSuperLive");if(!el)return;
+  var s=pSuperSel(),pool=superPool(s.cat,s.tier,s.top);
+  el.textContent=pool.length?superLiveText(pool):"No words match — loosen the filters.";
+}
+function updateWSuperLive(){
+  var el=$("wSuperLive");if(!el)return;
+  var s=wSuperSel(),pool=superPool(s.cat,s.tier,s.top);
+  el.textContent=pool.length?superLiveText(pool):"No words match — loosen the filters.";
+}
+function superRowVisibility(){
+  $("pSuperRow").classList.toggle("hidden",$("pMode").value!=="super");
+  $("wSuperRow").classList.toggle("hidden",$("wMode").value!=="super");
+  $("pCount").max=($("pMode").value==="super")?SUPER.length:442;
+  $("wCount").max=($("wMode").value==="super")?SUPER.length:442;
+  updatePSuperLive();updateWSuperLive();wsLiveInfo();
+}
 function applySettings(){
   if($("pMode"))$("pMode").value=SETT.pMode;
   if($("pLang"))$("pLang").value=SETT.pLang;
@@ -159,7 +196,13 @@ function startPractice(){
   if(!CURRENT){say("Select a student first \u2014 name entry is mandatory for scoring.","warn");return;}
   var mode=$("pMode").value;
   var count=parseInt($("pCount").value,10);
-  var pool=(mode==="super")?SUPER:BANK;
+  var pool,superD="";
+  if(mode==="super"){
+    var sel=pSuperSel();
+    pool=superPool(sel.cat,sel.tier,sel.top);
+    if(!pool.length){say("No Super Words match these filters — loosen them.","warn");return;}
+    superD=" · "+superDesc(sel);
+  }else{pool=BANK;}
   if(!(count>=1)){count=10;$("pCount").value=10;}
   count=Math.min(count,pool.length);
   var items=shuffle(pool).slice(0,count);
@@ -172,7 +215,7 @@ function startPractice(){
     if(!fpool.length){say("No words found on pages "+lo+"\u2013"+hi+".","warn");return;}
     items=shuffle(fpool).slice(0,Math.min(count,fpool.length));
   }
-  PR={mode:mode,lang:$("pLang").value,items:items,idx:0,score:0,done:false,student:CURRENT?CURRENT.name:"Guest",sid:CURRENT?CURRENT.id:"",pageLo:pageLo,pageHi:pageHi};
+  PR={mode:mode,lang:$("pLang").value,items:items,idx:0,score:0,done:false,student:CURRENT?CURRENT.name:"Guest",sid:CURRENT?CURRENT.id:"",pageLo:pageLo,pageHi:pageHi,superD:superD};
   renderQ();
 }
 function qPrompt(it){
@@ -235,7 +278,7 @@ function finishPractice(){
   PR.done=true;
   var total=PR.items.length, pct=total?Math.round(PR.score*1000/total)/10:0;
   var wmode=PR.lang==="bn"?"With Bangla":"No Bangla";
-  var card={date:nowStr(),student:PR.student,id:PR.sid,test:modeName(PR.mode)+" (Practice · "+wmode+")",obtained:PR.score,total:total,pct:pct,grade:grade(pct)};
+  var card={date:nowStr(),student:PR.student,id:PR.sid,test:modeName(PR.mode)+" (Practice · "+wmode+")"+(PR.superD||""),obtained:PR.score,total:total,pct:pct,grade:grade(pct)};
   HISTORY.push(card);
   try{localStorage.setItem("ss_history",JSON.stringify(HISTORY));}catch(e){}
   $("pBox").innerHTML=scoreCardHTML(card)+"<button class='btn gold' onclick='startPractice()'>New Test</button>";
@@ -444,7 +487,12 @@ function renderWSStu(){
 }
 function wsItems(){
   var mode=$("wMode").value, count=parseInt($("wCount").value,10), items;
-  if(mode==="super"){items=shuffle(SUPER).slice(0,count);}
+  if(mode==="super"){
+    var s=wSuperSel();
+    var pool=superPool(s.cat,s.tier,s.top);
+    if(!pool.length){say("No Super Words match these filters — loosen them.","warn");return null;}
+    items=shuffle(pool).slice(0,Math.min(count>=1?count:10,pool.length));
+  }
   else{items=shuffle(BANK).slice(0,count);}
   return items;
 }
@@ -465,8 +513,10 @@ function wsQuestionHTML(it,mode){
 }
 function wsAutoFont(rows){return rows>=20?12:rows>=15?13:rows>=10?14:16;}
 function wsLiveInfo(){
-  var n=Math.min(parseInt($("wCount").value,10)||10,($("wMode").value==="super"?SUPER:BANK).length);
-  $("wLive").textContent="\uD83D\uDCC4 "+(($("wMode").value==="super"?SUPER:BANK).length)+" words in bank \u2022 worksheet will have exactly "+n+" rows.";
+  var mode=$("wMode").value;
+  var bank=(mode==="super")?superPool(wSuperSel().cat,wSuperSel().tier,wSuperSel().top):BANK;
+  var n=Math.min(parseInt($("wCount").value,10)||10,bank.length);
+  $("wLive").textContent="\uD83D\uDCC4 "+bank.length.toLocaleString()+" words in bank \u2022 worksheet will have exactly "+n+" rows."+(mode==="super"?" ("+superDesc(wSuperSel())+")":"");
 }
 /* "Words" preset: No Bangla (words only) vs With Bangla — competition has no Bangla */
 function wsLangSync(){
@@ -477,9 +527,10 @@ function wsLangSync(){
 }
 function genWorksheet(){
   var mode=$("wMode").value, items=wsItems(), stu=STUDENTS[parseInt($("wStu").value,10)]||{n:"",id:""};
+  if(!items)return;
   var rows=Math.max(1,parseInt($("wRows").value,10)||10);
   var fv=$("wFont").value, fs=(fv==="auto")?wsAutoFont(rows):(parseInt(fv,10)||14);
-  var head="<div class='wsHead'><h2>"+esc(schoolName())+"</h2><div class='wsTitle'>Spelling Practice Worksheet \u2014 "+esc(modeName(mode))+"</div><div class='wsMeta'>Student: <b>"+esc(stu.n)+(stu.id?" ("+esc(stu.id)+")":"")+"</b> &nbsp; Date: __________ &nbsp; Score: ______ / "+items.length+"</div></div>";
+  var head="<div class='wsHead'><h2>"+esc(schoolName())+"</h2><div class='wsTitle'>Spelling Practice Worksheet \u2014 "+esc(modeName(mode))+(mode==="super"?" ("+esc(superDesc(wSuperSel()))+")":"")+"</div><div class='wsMeta'>Student: <b>"+esc(stu.n)+(stu.id?" ("+esc(stu.id)+")":"")+"</b> &nbsp; Date: __________ &nbsp; Score: ______ / "+items.length+"</div></div>";
   var h="<div class='wsWrap' style='font-size:"+fs+"px;font-family:\"Times New Roman\",Times,serif'>";
   for(var p=0;p<items.length;p+=rows){
     h+="<div class='wsPage'>"+(p===0?head:"");
@@ -672,6 +723,12 @@ $("wLang").addEventListener("change",wsLangSync);
 $("pCase").addEventListener("change",function(){setCaseMode(this.value);});
 $("wCase").addEventListener("change",function(){setCaseMode(this.value);});
 ["wMode","wCount"].forEach(function(id){$(id).addEventListener("change",wsLiveInfo);});
+$("pMode").addEventListener("change",superRowVisibility);
+$("wMode").addEventListener("change",superRowVisibility);
+["pCat","pTier"].forEach(function(id){$(id).addEventListener("change",updatePSuperLive);});
+$("pTop").addEventListener("change",updatePSuperLive);
+["wCat","wTier"].forEach(function(id){$(id).addEventListener("change",function(){updateWSuperLive();wsLiveInfo();});});
+$("wTop").addEventListener("change",function(){updateWSuperLive();wsLiveInfo();});
 $("resCsv").addEventListener("click",dlResultsCsv);
 $("resDoc").addEventListener("click",function(){if(resRows().length)dlDoc("SelfScaleAcademy_Results.doc","<h2>"+esc(schoolName())+" — Results Dashboard</h2>"+resTableHTML(resRows()));else say("No scores to export yet.","warn");});
 $("repDoc").addEventListener("click",function(){if($("repBox").innerHTML)dlDoc("Progress_Report.doc",$("repBox").innerHTML);else say("Generate the report first.","warn");});
@@ -691,6 +748,7 @@ wsLiveInfo();
 loadSettings();
 applySettings();
 applyTheme();
+superRowVisibility();
 $("themeBtn").addEventListener("click",toggleTheme);
 var gt=$("gTheme");if(gt)gt.addEventListener("click",toggleTheme);
 document.querySelectorAll("#pPresets button").forEach(function(b){b.addEventListener("click",function(){$("pCount").value=b.getAttribute("data-n");});});

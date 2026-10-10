@@ -20,6 +20,7 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .card{background:#fff;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .card h2{color:#123A72;margin-top:0;font-size:20px}
 .btn{background:#123A72;color:#fff;border:0;border-radius:12px;padding:12px 18px;font-size:16px;font-weight:700;cursor:pointer;margin:4px 4px 4px 0}
+label.btn{display:inline-block;vertical-align:middle}
 .btn.gold{background:#F59E0B;color:#182230}
 .btn.green{background:#1e8e4f}
 .btn.red{background:#b3261e}
@@ -208,6 +209,12 @@ body.student-mode .adminOnly{display:none!important}
     <label>Mode <select id="pMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
     <label>Words <select id="pLang"><option value="nobn" selected>No Bangla (words only)</option><option value="bn">With Bangla</option></select></label>
     <label>Letter case <select id="pCase"><option value="small" selected>Small (abc)</option><option value="cap">CAPITAL (ABC)</option></select></label>
+    <div id="pSuperRow" class="hidden">
+      <label>Category <select id="pCat"><option value="">All categories</option><option>Science</option><option>Cartoon</option><option>Sports</option><option>Capitals</option><option>Environment</option><option>Heritage/History</option></select></label>
+      <label>Difficulty <select id="pTier"><option value="">All levels</option><option>Easy</option><option>Hard</option><option>Challenging</option><option>High Challenging</option></select></label>
+      <label><input type="checkbox" id="pTop"> Top Prep (120 elite)</label>
+      <span class="note" id="pSuperLive"></span>
+    </div>
     <label>How many words <input type="number" id="pCount" min="1" max="442" value="10" style="width:80px"></label>
     <span id="pPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="442">All</button></span><br>
     <label class="adminOnly">Guide pages (teacher) <input type="number" id="pPgLo" min="111" max="133" placeholder="111" style="width:70px"> &ndash; <input type="number" id="pPgHi" min="111" max="133" placeholder="133" style="width:70px"></label>
@@ -235,6 +242,12 @@ body.student-mode .adminOnly{display:none!important}
     <span id="wPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="442">All</button></span>
     <label>Words <select id="wLang"><option value="nobn">No Bangla (words only)</option><option value="bn" selected>With Bangla</option></select></label>
     <label>Letter case <select id="wCase"><option value="small" selected>Small (abc)</option><option value="cap">CAPITAL (ABC)</option></select></label>
+    <div id="wSuperRow" class="hidden">
+      <label>Category <select id="wCat"><option value="">All categories</option><option>Science</option><option>Cartoon</option><option>Sports</option><option>Capitals</option><option>Environment</option><option>Heritage/History</option></select></label>
+      <label>Difficulty <select id="wTier"><option value="">All levels</option><option>Easy</option><option>Hard</option><option>Challenging</option><option>High Challenging</option></select></label>
+      <label><input type="checkbox" id="wTop"> Top Prep (120 elite)</label>
+      <span class="note" id="wSuperLive"></span>
+    </div>
     <label><input type="checkbox" id="wKey"> Include answer key page</label><br>
     <label><input type="checkbox" id="wBangla" checked> Bangla meaning</label>
     <label><input type="checkbox" id="wDef" checked> English meaning / definition</label>
