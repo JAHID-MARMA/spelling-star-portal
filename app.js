@@ -12,6 +12,16 @@ function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(M
 function pick(a){return a[Math.floor(Math.random()*a.length)];}
 function grade(p){if(p>=90)return "A+";if(p>=80)return "A";if(p>=70)return "A-";if(p>=60)return "B";if(p>=50)return "C";return "F";}
 function nowStr(){return new Date().toLocaleString();}
+/* Non-blocking inline message banner (replaces blocking alert()): never freezes the tab */
+var _msgT=null;
+function say(msg,kind){
+  var b=$("msgBar");if(!b)return;
+  b.className="msgBar show "+(kind||"warn");
+  b.textContent=msg;
+  window.scrollTo(0,0);
+  if(_msgT)clearTimeout(_msgT);
+  _msgT=setTimeout(function(){b.className="msgBar";},6000);
+}
 
 var CURRENT=null;
 var HISTORY=[];
@@ -54,7 +64,7 @@ function gapPattern(w){
   return s.trim();
 }
 function startPractice(){
-  if(!CURRENT){alert("Select a student first \u2014 name entry is mandatory for scoring.");return;}
+  if(!CURRENT){say("Select a student first \u2014 name entry is mandatory for scoring.","warn");return;}
   var mode=$("pMode").value, count=parseInt($("pCount").value,10);
   var items, i;
   if(mode==="super"){items=shuffle(SUPER).slice(0,count);}
@@ -142,15 +152,15 @@ function newExam(){
 }
 function exAdd(n,id){
   if(!n)return;
-  if(EX.roster.length>=100){alert("Maximum 100 students.");return;}
-  if(EX.roster.some(function(s){return s.name===n&&s.id===(id||"");})){alert(n+" is already in the roster.");return;}
+  if(EX.roster.length>=100){say("Maximum 100 students.","warn");return;}
+  if(EX.roster.some(function(s){return s.name===n&&s.id===(id||"");})){say(n+" is already in the roster.","warn");return;}
   EX.roster.push({name:n,id:id||"",alive:true,outRound:0,correct:0,wrongWord:"",order:EX.roster.length+1});
   renderExam();
 }
 function exAddStudents(){allStudents().reg.forEach(function(s){exAdd(s.n,s.id);});}
 function aliveList(){return EX.roster.filter(function(s){return s.alive;});}
 function exStart(){
-  if(EX.roster.length<1){alert("Add at least 1 student.");return;}
+  if(EX.roster.length<1){say("Add at least 1 student.","warn");return;}
   if(EX.roster.length===1){EX.started=true;EX.finished=true;EX.winner=EX.roster[0];renderExam();return;}
   EX.startRound=parseInt($("eStartRound").value,10)||1;
   EX.round=EX.startRound;
@@ -309,7 +319,7 @@ function genWorksheet(){
     h+="</table></div>";
   }
   $("printArea").innerHTML=h;
-  alert("Worksheet is ready. Press Print.");
+  say("Worksheet is ready \u2014 press Print.","ok");
 }
 
 /* ---------- Print ---------- */

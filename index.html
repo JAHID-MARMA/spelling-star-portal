@@ -49,6 +49,10 @@ tr:nth-child(even) td{background:#f2f5fb}
 .note{font-size:13px;color:#596579}
 .hidden{display:none}
 #printArea{display:none}
+.msgBar{display:none;font-weight:700;font-size:15px;padding:12px 16px;border-radius:12px;margin-bottom:14px;border-left:6px solid}
+.msgBar.show{display:block}
+.msgBar.ok{background:#e2f4e8;color:#14532d;border-color:#1e8e4f}
+.msgBar.warn{background:#fff3d6;color:#7a4a00;border-color:#F59E0B}
 .wsHead{text-align:center;border-bottom:3px solid #123A72;padding-bottom:10px;margin-bottom:12px}
 .wsHead h2{margin:0 0 4px;font-size:22px}
 .wsTitle{font-size:16px;font-weight:700}
@@ -145,6 +149,7 @@ body.student-mode .adminOnly{display:none!important}
   <button data-v="history">Score History</button><button data-v="stage" class="adminOnly">&#127908; Stage Guide</button><button id="navExit" style="display:none">&#215; Exit</button>
 </nav>
 <main>
+<div id="msgBar" class="msgBar"></div>
 <section id="view-home">
   <div class="card"><h2>Select a Student</h2><div id="stuList"></div>
     <p class="note">Name entry is mandatory for scoring. Registered cards keep full name + registration no. on every score.</p>
