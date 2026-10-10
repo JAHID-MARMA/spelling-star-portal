@@ -24,7 +24,15 @@ function say(msg,kind){
 }
 
 /* ---------- Teacher Settings (one place for all teacher controls) ---------- */
-var SETT={pMode:"spelling",pLang:"nobn",pCount:10,passSkip:true,school:"Self Scale Academy",showGradeScale:true};
+var SETT={pMode:"spelling",pLang:"nobn",pCount:10,pCase:"small",passSkip:true,school:"Self Scale Academy",showGradeScale:true};
+/* Letter case — CAPITAL or Small, always UNIFORM (never mixed, so no capital-letter clues leak) */
+function caseWord(w){return SETT.pCase==="cap"?String(w).toUpperCase():String(w).toLowerCase();}
+function setCaseMode(v){
+  SETT.pCase=(v==="cap")?"cap":"small";
+  saveSettings();
+  var a=$("pCase"),b=$("wCase"),c=$("sCase");
+  if(a)a.value=SETT.pCase;if(b)b.value=SETT.pCase;if(c)c.value=SETT.pCase;
+}
 function loadSettings(){
   try{var s=JSON.parse(localStorage.getItem("ss_settings")||"null");if(s)SETT=Object.assign({},SETT,s);}catch(e){}
 }
@@ -37,6 +45,9 @@ function applySettings(){
   if($("pLang"))$("pLang").value=SETT.pLang;
   if($("pCount"))$("pCount").value=SETT.pCount;
   if($("wCount"))$("wCount").value=SETT.pCount;
+  if($("pCase"))$("pCase").value=SETT.pCase;
+  if($("wCase"))$("wCase").value=SETT.pCase;
+  if($("sCase"))$("sCase").value=SETT.pCase;
   if($("sMode"))$("sMode").value=SETT.pMode;
   if($("sLang"))$("sLang").value=SETT.pLang;
   if($("sCount"))$("sCount").value=SETT.pCount;
@@ -173,15 +184,15 @@ function qPrompt(it){
     if(PR.mode==="spelling"){
       return "<div class='clue'>Part of speech: <i><b>"+esc(it.pos)+"</b></i><br>Look at the word, remember it, then spell it.</div>"+
              "<button class='btn ghost' id='qFlash'>Show the word (3 sec)</button>"+
-             "<div id='qFlashWord' class='jumble' style='display:none'>"+esc(it.w)+"</div>";
+             "<div id='qFlashWord' class='jumble' style='display:none'>"+esc(caseWord(it.w))+"</div>";
     }
-    if(PR.mode==="jumbled"){return "<div class='clue'>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div><div class='jumble'>"+esc(jumble(it.w))+"</div>";}
-    if(PR.mode==="gaps"){return "<div class='clue'>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div><div class='gaps'>"+esc(gapPattern(it.w))+"</div>";}
+    if(PR.mode==="jumbled"){return "<div class='clue'>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div><div class='jumble'>"+esc(jumble(caseWord(it.w)))+"</div>";}
+    if(PR.mode==="gaps"){return "<div class='clue'>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div><div class='gaps'>"+esc(caseWord(gapPattern(it.w)))+"</div>";}
     return "";
   }
   var clue="<div class='clue'><span class='bn'>"+esc(it.bn)+"</span><br>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div>";
-  if(PR.mode==="jumbled"){return clue+"<div class='jumble'>"+esc(jumble(it.w))+"</div>";}
-  if(PR.mode==="gaps"){return clue+"<div class='gaps'>"+esc(gapPattern(it.w))+"</div>";}
+  if(PR.mode==="jumbled"){return clue+"<div class='jumble'>"+esc(jumble(caseWord(it.w)))+"</div>";}
+  if(PR.mode==="gaps"){return clue+"<div class='gaps'>"+esc(caseWord(gapPattern(it.w)))+"</div>";}
   return clue;
 }
 function renderQ(){
@@ -213,10 +224,11 @@ function checkQ(skip){
   if(PR.locked)return;
   PR.locked=true;
   var it=PR.items[PR.idx], given=$("qAns").value, ok=!skip&&norm(given)===norm(it.w), fb=$("qFb");
+  var myPR=PR, myIdx=PR.idx; /* guard: a stale timer must never advance a newer test */
   if(ok)PR.score++;
   fb.className="fb "+(ok?"ok":"no");
-  fb.innerHTML=(ok?"Correct! Well done.":"Not correct. The word is: <b>"+esc(it.w)+"</b>")+(it.ex?"<br><i>"+esc(it.ex)+"</i>":"");
-  setTimeout(function(){PR.idx++;renderQ();},ok?900:2200);
+  fb.innerHTML=(ok?"Correct! Well done.":"Not correct. The word is: <b>"+esc(caseWord(it.w))+"</b>")+(it.ex?"<br><i>"+esc(it.ex)+"</i>":"");
+  setTimeout(function(){if(PR===myPR&&PR.idx===myIdx){PR.idx++;renderQ();}},ok?900:2200);
 }
 function modeName(m){return {spelling:"Spelling",jumbled:"Jumbled Word",gaps:"Fill in the Gaps",super:"Super Word"}[m]||m;}
 function finishPractice(){
@@ -245,15 +257,37 @@ function renderHistory(){
   var h="";
   if(!HISTORY.length){h="<p class='note'>No finished tests yet. Scores will appear here.</p>";}
   else{
-    h="<table><tr><th>Date</th><th>Student</th><th>ID</th><th>Round / Test</th><th>Obtained</th><th>Total</th><th>%</th><th>Grade</th></tr>";
-    HISTORY.slice().reverse().forEach(function(c){h+="<tr><td>"+esc(c.date)+"</td><td>"+esc(c.student)+"</td><td>"+esc(c.id)+"</td><td>"+esc(c.test)+"</td><td>"+c.obtained+"</td><td>"+c.total+"</td><td>"+c.pct+"</td><td>"+esc(c.grade)+"</td></tr>";});
+    h="<table><tr><th>Date</th><th>Student</th><th>ID</th><th>Round / Test</th><th>Obtained</th><th>Total</th><th>%</th><th>Grade</th><th class='adminOnly noPrint'>Delete</th></tr>";
+    HISTORY.slice().reverse().forEach(function(c){
+      var hi=HISTORY.indexOf(c);
+      h+="<tr><td>"+esc(c.date)+"</td><td>"+esc(c.student)+"</td><td>"+esc(c.id)+"</td><td>"+esc(c.test)+"</td><td>"+c.obtained+"</td><td>"+c.total+"</td><td>"+c.pct+"</td><td>"+esc(c.grade)+"</td><td class='adminOnly noPrint'><button class='btn red delBtn' data-del='"+hi+"'>Delete</button></td></tr>";});
     h+="</table>";
   }
   $("histBox").innerHTML=h;
+  wireDelButtons($("histBox"));
 }
 function printHistory(){
   var h="<h2>Spelling Star — Score History</h2>"+$("histBox").innerHTML;
   doPrint(h);
+}
+
+/* ---------- Delete a score (teacher only, irreversible — confirm first) ---------- */
+function delScore(hi){
+  var c=HISTORY[hi];
+  if(!c)return;
+  if(!confirm("Delete this score?\n"+c.student+" — "+c.test+"\n"+c.obtained+" / "+c.total+" ("+c.pct+"%)\nThis cannot be undone."))return;
+  HISTORY.splice(hi,1);
+  try{localStorage.setItem("ss_history",JSON.stringify(HISTORY));}catch(e){}
+  renderResults();renderHistory();
+  if($("repBox")&&$("repBox").innerHTML)genReport();
+  if($("certBox")&&$("certBox").innerHTML)genCert();
+  say("Score deleted.","ok");
+}
+function wireDelButtons(root){
+  if(!root)return;
+  root.querySelectorAll("[data-del]").forEach(function(b){
+    b.addEventListener("click",function(){delScore(parseInt(b.getAttribute("data-del"),10));});
+  });
 }
 
 /* ---------- Examiner / Tournament ---------- */
@@ -417,8 +451,8 @@ function wsItems(){
 function wsQuestionHTML(it,mode){
   var showBn=$("wBangla").checked, showDef=$("wDef").checked, showEx=$("wEx").checked;
   var q="",clue=[];
-  if(mode==="jumbled"){q='<div class="wsWord">'+esc(jumble(it.w))+'</div>';}
-  else if(mode==="gaps"){q='<div class="wsWord">'+esc(gapPattern(it.w))+'</div>';}
+  if(mode==="jumbled"){q='<div class="wsWord">'+esc(jumble(caseWord(it.w)))+'</div>';}
+  else if(mode==="gaps"){q='<div class="wsWord">'+esc(caseWord(gapPattern(it.w)))+'</div>';}
   else if(mode==="super"){q='<div class="wsWord">'+esc(it.cat)+'</div>';}
   else{q='<div class="wsWord">Write the correct spelling:</div>';}
   if(mode==="super"){if(showDef&&it.c)clue.push(esc(it.c));}
@@ -459,7 +493,7 @@ function genWorksheet(){
   if($("wKey").checked){
     var showBn=$("wBangla").checked;
     h+="<div class='wsKey'><h2>Answer Key \u2014 for the teacher only</h2><table><tr><th>No.</th><th>Word</th><th>Meaning</th></tr>";
-    items.forEach(function(it,i){h+="<tr><td>"+(i+1)+"</td><td><b>"+esc(it.w)+"</b></td><td>"+esc((showBn&&it.bn?it.bn+" \u2014 ":"")+(it.c||it.en||""))+"</td></tr>";});
+    items.forEach(function(it,i){h+="<tr><td>"+(i+1)+"</td><td><b>"+esc(caseWord(it.w))+"</b></td><td>"+esc((showBn&&it.bn?it.bn+" \u2014 ":"")+(it.c||it.en||""))+"</td></tr>";});
     h+="</table></div>";
   }
   h+="</div>";
@@ -477,10 +511,12 @@ function resRows(){
   rows.sort(function(a,b){return RES_ASC?(HISTORY.indexOf(a)-HISTORY.indexOf(b)):(HISTORY.indexOf(b)-HISTORY.indexOf(a));});
   return rows;
 }
-function resTableHTML(rows){
+function resTableHTML(rows,hideDel){
   if(!rows.length)return "<p class='note'>No finished tests yet.</p>";
-  var h="<table><tr><th>#</th><th>Date</th><th>Student</th><th>ID</th><th>Round / Test</th><th>Obtained</th><th>Total</th><th>%</th><th>Grade</th></tr>";
-  rows.forEach(function(c,i){h+="<tr><td>"+(i+1)+"</td><td>"+esc(c.date)+"</td><td>"+esc(c.student)+"</td><td>"+esc(c.id)+"</td><td>"+esc(c.test)+"</td><td>"+c.obtained+"</td><td>"+c.total+"</td><td>"+c.pct+"</td><td><b>"+esc(c.grade)+"</b></td></tr>";});
+  var h="<table><tr><th>#</th><th>Date</th><th>Student</th><th>ID</th><th>Round / Test</th><th>Obtained</th><th>Total</th><th>%</th><th>Grade</th>"+(hideDel?"":"<th class='noPrint'>Delete</th>")+"</tr>";
+  rows.forEach(function(c,i){
+    var hi=HISTORY.indexOf(c);
+    h+="<tr><td>"+(i+1)+"</td><td>"+esc(c.date)+"</td><td>"+esc(c.student)+"</td><td>"+esc(c.id)+"</td><td>"+esc(c.test)+"</td><td>"+c.obtained+"</td><td>"+c.total+"</td><td>"+c.pct+"</td><td><b>"+esc(c.grade)+"</b></td>"+(hideDel?"":"<td class='noPrint'><button class='btn red delBtn' data-del='"+hi+"'>Delete</button></td>")+"</tr>";});
   return h+"</table>";
 }
 function fillStudentSelects(){
@@ -497,6 +533,7 @@ function renderResults(){
   fillStudentSelects();
   renderPhotoBox();
   $("resDash").innerHTML=resTableHTML(resRows())+"<p class='note'>Scores are saved on this device only.</p>";
+  wireDelButtons($("resDash"));
 }
 function genReport(){
   var n=$("repStu").value;
@@ -509,7 +546,7 @@ function genReport(){
   var trend=last>first?"Improving \u2191":(last<first?"Needs work \u2193":"Steady \u2192");
   var h="<div class='wsHead' style=\"font-family:'Times New Roman',Times,serif\"><h2>"+esc(schoolName())+"</h2><div class='wsTitle'>Student Progress Report</div><div class='wsMeta'>Student: <b>"+esc(n)+"</b>"+(st.id?" ("+esc(st.id)+")":"")+"</div></div>";
   h+="<table><tr><th>Tests taken</th><td>"+list.length+"</td></tr><tr><th>Best score</th><td>"+best.pct+"% ("+esc(best.test)+", "+esc(best.date)+")</td></tr><tr><th>Average</th><td>"+avg+"%</td></tr><tr><th>Trend (first \u2192 last)</th><td><b>"+trend+"</b> ("+first+"% \u2192 "+last+"%)</td></tr></table>";
-  h+="<h3>Dated test history</h3>"+resTableHTML(list.slice().reverse());
+  h+="<h3>Dated test history</h3>"+resTableHTML(list.slice().reverse(),true);
   h+="<p style='margin-top:26px'>Teacher's Signature: ______________________ &nbsp;&nbsp; Date: __________ &nbsp;&nbsp; Seal: __________</p>";
   $("repBox").innerHTML=h;
 }
@@ -632,6 +669,8 @@ $("hPrint").addEventListener("click",printHistory);
 $("wGen").addEventListener("click",genWorksheet);
 $("wDoc").addEventListener("click",dlWorksheetDoc);
 $("wLang").addEventListener("change",wsLangSync);
+$("pCase").addEventListener("change",function(){setCaseMode(this.value);});
+$("wCase").addEventListener("change",function(){setCaseMode(this.value);});
 ["wMode","wCount"].forEach(function(id){$(id).addEventListener("change",wsLiveInfo);});
 $("resCsv").addEventListener("click",dlResultsCsv);
 $("resDoc").addEventListener("click",function(){if(resRows().length)dlDoc("SelfScaleAcademy_Results.doc","<h2>"+esc(schoolName())+" — Results Dashboard</h2>"+resTableHTML(resRows()));else say("No scores to export yet.","warn");});
@@ -660,6 +699,7 @@ $("sSave").addEventListener("click",function(){
   SETT.pMode=$("sMode").value;SETT.pLang=$("sLang").value;
   var c=parseInt($("sCount").value,10);SETT.pCount=(c>=1&&c<=442)?c:10;
   SETT.passSkip=$("sSkip").checked;SETT.showGradeScale=$("sScale").checked;
+  SETT.pCase=($("sCase")&&$("sCase").value==="cap")?"cap":"small";
   SETT.school=$("sSchool").value.trim()||"Self Scale Academy";
   saveSettings();applySettings();say("Settings saved.","ok");
 });

@@ -84,6 +84,8 @@ tr:nth-child(even) td{background:#f2f5fb}
 .wsA{flex:0 0 34%;border-bottom:2px solid #333;height:1.4em}
 .wsKey{page-break-before:always}
 .wsFoot{text-align:center;font-size:12px;color:#444;border-top:2px solid #123A72;margin-top:10px;padding-top:6px}
+.delBtn{padding:6px 10px;font-size:13px;margin:0}
+@media print{.noPrint{display:none!important}}
 @media (max-width:560px){
 nav button{min-height:44px;font-size:14px;padding:10px 12px}
 .btn{min-height:44px}
@@ -205,6 +207,7 @@ body.student-mode .adminOnly{display:none!important}
   <div class="card"><h2>Practice Trainers</h2>
     <label>Mode <select id="pMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
     <label>Words <select id="pLang"><option value="nobn" selected>No Bangla (words only)</option><option value="bn">With Bangla</option></select></label>
+    <label>Letter case <select id="pCase"><option value="small" selected>Small (abc)</option><option value="cap">CAPITAL (ABC)</option></select></label>
     <label>How many words <input type="number" id="pCount" min="1" max="442" value="10" style="width:80px"></label>
     <span id="pPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="442">All</button></span><br>
     <label class="adminOnly">Guide pages (teacher) <input type="number" id="pPgLo" min="111" max="133" placeholder="111" style="width:70px"> &ndash; <input type="number" id="pPgHi" min="111" max="133" placeholder="133" style="width:70px"></label>
@@ -231,6 +234,7 @@ body.student-mode .adminOnly{display:none!important}
     <label>How many words <input type="number" id="wCount" min="1" max="442" value="10" style="width:80px"></label>
     <span id="wPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="442">All</button></span>
     <label>Words <select id="wLang"><option value="nobn">No Bangla (words only)</option><option value="bn" selected>With Bangla</option></select></label>
+    <label>Letter case <select id="wCase"><option value="small" selected>Small (abc)</option><option value="cap">CAPITAL (ABC)</option></select></label>
     <label><input type="checkbox" id="wKey"> Include answer key page</label><br>
     <label><input type="checkbox" id="wBangla" checked> Bangla meaning</label>
     <label><input type="checkbox" id="wDef" checked> English meaning / definition</label>
@@ -288,7 +292,8 @@ body.student-mode .adminOnly{display:none!important}
   <div class="card"><h2>&#9881;&#65039; Teacher Settings</h2>
     <p class="note">One place for all teacher controls. Saved on this device.</p>
     <label>Default round <select id="sMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
-    <label>Default words mode <select id="sLang"><option value="nobn">No Bangla (words only)</option><option value="bn">With Bangla</option></select></label><br>
+    <label>Default words mode <select id="sLang"><option value="nobn">No Bangla (words only)</option><option value="bn">With Bangla</option></select></label>
+    <label>Default letter case <select id="sCase"><option value="small">Small (abc)</option><option value="cap">CAPITAL (ABC)</option></select></label><br>
     <label>Default word count <input type="number" id="sCount" min="1" max="442" value="10" style="width:80px"></label>
     <label>School name <input type="text" id="sSchool" value="Self Scale Academy" style="width:240px"></label><br>
     <label><input type="checkbox" id="sSkip" checked> Allow &ldquo;Next (teacher)&rdquo; skip button in practice</label><br>
