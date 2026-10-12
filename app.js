@@ -516,7 +516,13 @@ function wsLiveInfo(){
   var mode=$("wMode").value;
   var bank=(mode==="super")?superPool(wSuperSel().cat,wSuperSel().tier,wSuperSel().top):BANK;
   var n=Math.min(parseInt($("wCount").value,10)||10,bank.length);
-  $("wLive").textContent="\uD83D\uDCC4 "+bank.length.toLocaleString()+" words in bank \u2022 worksheet will have exactly "+n+" rows."+(mode==="super"?" ("+superDesc(wSuperSel())+")":"");
+  var rows=Math.max(1,parseInt($("wRows").value,10)||10);
+  var pagesAll=$("wPagesAll").checked;
+  var pagesWanted=Math.max(1,parseInt($("wPages").value,10)||1);
+  var pages=pagesAll?Math.ceil(n/rows):Math.min(pagesWanted,Math.ceil(n/rows));
+  var showRows=Math.min(n,pages*rows);
+  $("wPages").disabled=pagesAll;
+  $("wLive").textContent="\uD83D\uDCC4 "+bank.length.toLocaleString()+" words in bank \u2022 worksheet will have exactly "+showRows+" rows on "+pages+" page"+(pages>1?"s":"")+"."+(mode==="super"?" ("+superDesc(wSuperSel())+")":"");
 }
 /* "Words" preset: No Bangla (words only) vs With Bangla — competition has no Bangla */
 function wsLangSync(){
@@ -529,6 +535,9 @@ function genWorksheet(){
   var mode=$("wMode").value, items=wsItems(), stu=STUDENTS[parseInt($("wStu").value,10)]||{n:"",id:""};
   if(!items)return;
   var rows=Math.max(1,parseInt($("wRows").value,10)||10);
+  var pagesAll=$("wPagesAll").checked;
+  var pagesWanted=Math.max(1,parseInt($("wPages").value,10)||1);
+  if(!pagesAll){items=items.slice(0,Math.min(items.length,pagesWanted*rows));}
   var fv=$("wFont").value, fs=(fv==="auto")?wsAutoFont(rows):(parseInt(fv,10)||14);
   var head="<div class='wsHead'><h2>"+esc(schoolName())+"</h2><div class='wsTitle'>Spelling Practice Worksheet \u2014 "+esc(modeName(mode))+(mode==="super"?" ("+esc(superDesc(wSuperSel()))+")":"")+"</div><div class='wsMeta'>Student: <b>"+esc(stu.n)+(stu.id?" ("+esc(stu.id)+")":"")+"</b> &nbsp; Date: __________ &nbsp; Score: ______ / "+items.length+"</div></div>";
   var h="<div class='wsWrap' style='font-size:"+fs+"px;font-family:\"Times New Roman\",Times,serif'>";
@@ -722,7 +731,7 @@ $("wDoc").addEventListener("click",dlWorksheetDoc);
 $("wLang").addEventListener("change",wsLangSync);
 $("pCase").addEventListener("change",function(){setCaseMode(this.value);});
 $("wCase").addEventListener("change",function(){setCaseMode(this.value);});
-["wMode","wCount"].forEach(function(id){$(id).addEventListener("change",wsLiveInfo);});
+["wMode","wCount","wRows","wPages","wPagesAll"].forEach(function(id){$(id).addEventListener("change",wsLiveInfo);});
 $("pMode").addEventListener("change",superRowVisibility);
 $("wMode").addEventListener("change",superRowVisibility);
 ["pCat","pTier"].forEach(function(id){$(id).addEventListener("change",updatePSuperLive);});
