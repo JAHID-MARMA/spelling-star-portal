@@ -224,13 +224,14 @@ body.student-mode .adminOnly{display:none!important}
 </section>
 <section id="view-exam" class="hidden">
   <div class="card"><h2>Examiner / Tournament &mdash; Teacher Only</h2>
-    <button class="btn" id="eAddReg">Add the 3 Students</button><br>
+    <button class="btn" id="eAddReg">Add the 3 Students</button>
+    <button class="btn gold" id="eAddKhannas">Add Khannas (virtual rival)</button><br>
     <label>Starting round <select id="eStartRound"><option value="1">Round 1 Spelling</option><option value="2">Round 2 Jumbled</option><option value="3">Round 3 Gaps</option><option value="4">Round 4 Super Word</option></select></label>
     <label>Questions per student each round <select id="eQPer"><option value="1" selected>1 (official)</option><option value="2">2</option><option value="3">3</option></select></label>
     <button class="btn green big" id="eStart">Start Tournament</button>
     <button class="btn red" id="eReset">Reset</button>
     <button class="btn ghost" id="ePrint">Print Results Sheet</button>
-    <p class="note">Official mode: no pass / no skip. One wrong answer = out. Word replacement before an answer is an organizer decision and is written in the audit trail.</p>
+    <p class="note">Official mode: no pass / no skip. One wrong answer = out. Word replacement before an answer is an organizer decision and is written in the audit trail.<br>Khannas is an optional virtual rival who auto-plays his turns (strong but beatable) — add or remove him any time before starting.</p>
     <div id="eBox" style="margin-top:12px"></div>
   </div>
 </section>

@@ -339,15 +339,36 @@ function newExam(){
   CURQ=null;
   EX={roster:[],round:1,startRound:1,qPer:1,started:false,finished:false,asked:{},used:{},superUsed:{},audit:[],winner:null,qCount:0};
   renderExam();
+  khannasBtnLabel();
 }
 function exAdd(n,id){
   if(!n)return;
   if(EX.roster.length>=100){say("Maximum 100 students.","warn");return;}
   if(EX.roster.some(function(s){return s.name===n&&s.id===(id||"");})){say(n+" is already in the roster.","warn");return;}
-  EX.roster.push({name:n,id:id||"",alive:true,outRound:0,correct:0,wrongWord:"",order:EX.roster.length+1});
+  EX.roster.push({name:n,id:id||"",alive:true,outRound:0,correct:0,wrongWord:"",order:EX.roster.length+1,virtual:false});
   renderExam();
 }
 function exAddStudents(){allStudents().reg.forEach(function(s){exAdd(s.n,s.id);});}
+/* ---------- Virtual rival: Khannas (optional — the teacher adds/removes him before starting) ---------- */
+var KHANNAS_SKILL=[0,0.88,0.86,0.84,0.80]; /* correct-answer probability per round: strong but beatable */
+function exToggleKhannas(){
+  if(!EX)return;
+  var i=-1;
+  for(var k=0;k<EX.roster.length;k++){if(EX.roster[k].virtual){i=k;break;}}
+  if(i>=0){EX.roster.splice(i,1);say("Khannas removed from the roster.","ok");}
+  else{
+    if(EX.roster.length>=100){say("Maximum 100 students.","warn");return;}
+    EX.roster.push({name:"Khannas",id:"VIRTUAL",alive:true,outRound:0,correct:0,wrongWord:"",order:0,virtual:true});
+    say("Khannas joined as a virtual rival — beat him if you can!","ok");
+  }
+  khannasBtnLabel();
+  renderExam();
+}
+function khannasBtnLabel(){
+  var b=$("eAddKhannas");if(!b)return;
+  var inR=EX&&EX.roster.some(function(s){return s.virtual;});
+  b.textContent=inR?"Remove Khannas":"Add Khannas (virtual rival)";
+}
 function aliveList(){return EX.roster.filter(function(s){return s.alive;});}
 function exStart(){
   if(EX.roster.length<1){say("Add at least 1 student.","warn");return;}
@@ -395,22 +416,35 @@ function nextTurn(first){
   }
   CURQ={student:s,q:makeQ()};
 }
-function exJudge(){
-  if(!CURQ||EX.lock)return;
-  var given=$("eAns").value, s=CURQ.student;
-  if(!given.trim()&&!confirm("The answer box is empty. This will knock "+s.name+" OUT. Judge anyway?"))return;
-  EX.lock=true;
-  var ok=norm(given)===norm(CURQ.q.ans);
+function exApply(s,ok,givenLabel){
+  /* Shared judgement path: human answers (typed by the organizer) and Khannas auto-play both land here. */
   EX.qCount++;
   EX.asked[s.order]=(EX.asked[s.order]||0)+1;
   if(ok){s.correct++;}
   else{s.alive=false;s.outRound=EX.round;s.wrongWord=CURQ.q.ans;}
-  EX.audit.push({t:nowStr(),name:s.name,id:s.id,round:EX.round,word:CURQ.q.ans,given:given||"(no answer)",ok:ok});
+  EX.audit.push({t:nowStr(),name:s.name,id:s.id,round:EX.round,word:CURQ.q.ans,given:givenLabel,ok:ok,virt:!!s.virtual});
   var alive=aliveList();
   if(alive.length<=1){EX.finished=true;EX.winner=alive[0]||null;CURQ=null;}
   else if(ok&&(EX.asked[s.order]||0)<EX.qPer){CURQ={student:s,q:makeQ()};}
   else{nextTurn(false);}
-  renderExam(ok, given);
+  renderExam(ok,givenLabel);
+}
+function exJudge(){
+  if(!CURQ||EX.lock)return;
+  var s=CURQ.student;
+  if(s.virtual)return; /* virtual players are never judged by hand */
+  var given=$("eAns").value;
+  if(!given.trim()&&!confirm("The answer box is empty. This will knock "+s.name+" OUT. Judge anyway?"))return;
+  EX.lock=true;
+  exApply(s,norm(given)===norm(CURQ.q.ans),given||"(no answer)");
+}
+function exJudgeVirtual(){
+  /* Khannas auto-plays his turn: strong but beatable (~85%, dips in harder rounds). */
+  if(!CURQ||EX.lock||!CURQ.student.virtual)return;
+  var s=CURQ.student;
+  EX.lock=true;
+  var p=KHANNAS_SKILL[EX.round]||0.85;
+  exApply(s,Math.random()<p,"(auto-play)");
 }
 function exReplace(){
   if(!CURQ)return;
@@ -431,47 +465,86 @@ function renderExam(lastOk,lastGiven,keepFb){
   h+="<div class='scorebar'>Roster: "+EX.roster.length+" / 100 · Alive: "+aliveList().length+" · Round: "+(EX.started?("Round "+EX.round+" — "+modeName(["","spelling","jumbled","gaps","super"][EX.round])):"not started")+"</div>";
   if(EX.started&&!EX.finished&&aliveList().length<=10&&aliveList().length>3){h+="<div class='banner'>TOP "+aliveList().length+" — final stage!</div>";}
   if(EX.started&&!EX.finished&&aliveList().length<=3&&aliveList().length>1){h+="<div class='banner'>TOP "+aliveList().length+"!</div>";}
-  if(EX.finished&&EX.winner){h+="<div class='banner'>WINNER: "+esc(EX.winner.name)+(EX.winner.id?" ("+esc(EX.winner.id)+")":"")+"</div>";}
+  if(EX.finished&&EX.winner){
+    var wNote=EX.winner.virtual?" &#129302; (virtual rival — students, fight harder next time!)":"";
+    h+="<div class='banner'>WINNER: "+esc(EX.winner.name)+wNote+((!EX.winner.virtual&&EX.winner.id)?" ("+esc(EX.winner.id)+")":"")+"</div>";
+  }
   if(CURQ&&EX.started&&!EX.finished){
-    h+="<div class='card' style='box-shadow:none;border:2px solid #F59E0B'><h2>Now answering: "+esc(CURQ.student.name)+(CURQ.student.id?" · "+esc(CURQ.student.id):"")+"</h2>";
-    h+=CURQ.q.prompt;
-    h+="<br><input type='text' class='ans' id='eAns' autocomplete='off' placeholder='Type the answer exactly'>";
-    h+="<br><button class='btn gold big' id='eJudge'>Judge Answer</button>";
-    h+=" <button class='btn ghost' id='eReplace'>Replace word (organizer)</button>";
-    h+="<div class='fb' id='eFb'></div></div>";
+    if(CURQ.student.virtual){
+      h+="<div class='card' style='box-shadow:none;border:2px solid #F59E0B'><h2>Now answering: "+esc(CURQ.student.name)+" &#129302; <span class='note'>(virtual rival — auto-play)</span></h2>";
+      h+=CURQ.q.prompt;
+      h+="<p class='note'>Khannas is spelling the word… the result appears automatically.</p>";
+      h+="<div class='fb' id='eFb'></div></div>";
+    }else{
+      h+="<div class='card' style='box-shadow:none;border:2px solid #F59E0B'><h2>Now answering: "+esc(CURQ.student.name)+(CURQ.student.id?" · "+esc(CURQ.student.id):"")+"</h2>";
+      h+=CURQ.q.prompt;
+      h+="<br><input type='text' class='ans' id='eAns' autocomplete='off' placeholder='Type the answer exactly'>";
+      h+="<br><button class='btn gold big' id='eJudge'>Judge Answer</button>";
+      h+=" <button class='btn ghost' id='eReplace'>Replace word (organizer)</button>";
+      h+="<div class='fb' id='eFb'></div></div>";
+    }
   }
   h+="<h3>Alive board</h3><div>";
-  aliveList().forEach(function(s){h+="<span class='chip'>"+esc(s.name)+(s.id?" · "+esc(s.id):"")+" · ✓ "+s.correct+"</span>";});
+  aliveList().forEach(function(s){
+    var lbl=s.virtual?"&#129302; "+esc(s.name)+" <small>(virtual rival)</small>":esc(s.name)+(s.id?" · "+esc(s.id):"");
+    h+="<span class='chip'>"+lbl+" · &#10003; "+s.correct+"</span>";
+  });
   if(!aliveList().length)h+="<span class='note'>No students alive.</span>";
   h+="</div><h3>Eliminated board (one wrong = out)</h3><div>";
-  EX.roster.filter(function(s){return !s.alive;}).forEach(function(s){h+="<span class='chip out'>"+esc(s.name)+" · out in Round "+s.outRound+" · word: "+esc(s.wrongWord)+"</span>";});
+  EX.roster.filter(function(s){return !s.alive;}).forEach(function(s){
+    var lbl=s.virtual?"&#129302; "+esc(s.name)+" <small>(virtual rival)</small>":esc(s.name);
+    h+="<span class='chip out'>"+lbl+" · out in Round "+s.outRound+" · word: "+esc(s.wrongWord)+"</span>";
+  });
   if(!EX.roster.some(function(s){return !s.alive;}))h+="<span class='note'>Nobody is out yet.</span>";
   h+="</div>";
   if(EX.finished){
     h+="<h3>Final ranking</h3><table><tr><th>Rank</th><th>Student</th><th>ID</th><th>Result</th><th>Correct</th></tr>";
-    ranking().forEach(function(s,i){h+="<tr><td>"+(i+1)+"</td><td>"+esc(s.name)+"</td><td>"+esc(s.id)+"</td><td>"+(s===EX.winner?"WINNER":"Out in Round "+s.outRound)+"</td><td>"+s.correct+"</td></tr>";});
+    ranking().forEach(function(s,i){
+      var nm=s.virtual?esc(s.name)+" &#129302; <small>(virtual rival)</small>":esc(s.name);
+      var idc=s.virtual?"—":esc(s.id);
+      var res=(s===EX.winner)?(s.virtual?"WINNER (virtual rival)":"WINNER"):("Out in Round "+s.outRound);
+      h+="<tr><td>"+(i+1)+"</td><td>"+nm+"</td><td>"+idc+"</td><td>"+res+"</td><td>"+s.correct+"</td></tr>";
+    });
     h+="</table><p class='note'>Tie rule (round reached, then correct answers, then entry order) is an ASSUMPTION — not an official rule.</p>";
   }
   if(EX.audit.length){
     h+="<h3>Audit trail</h3><table><tr><th>Time</th><th>Student</th><th>ID</th><th>Round</th><th>Word</th><th>Given</th><th>Verdict</th></tr>";
-    EX.audit.slice().reverse().forEach(function(a){h+="<tr><td>"+esc(a.t)+"</td><td>"+esc(a.name)+"</td><td>"+esc(a.id)+"</td><td>"+a.round+"</td><td>"+esc(a.word)+"</td><td>"+esc(a.given)+"</td><td>"+(a.replaced?"REPLACED":(a.ok?"Correct":"OUT"))+"</td></tr>";});
+    EX.audit.slice().reverse().forEach(function(a){
+      var an=a.virt?"&#129302; "+esc(a.name):esc(a.name);
+      var aid=a.virt?"—":esc(a.id);
+      h+="<tr><td>"+esc(a.t)+"</td><td>"+an+"</td><td>"+aid+"</td><td>"+a.round+"</td><td>"+esc(a.word)+"</td><td>"+esc(a.given)+"</td><td>"+(a.replaced?"REPLACED":(a.ok?"Correct":"OUT"))+"</td></tr>";});
     h+="</table>";
   }
   if(EX.finished&&lastOk!==null&&lastOk!==undefined){
-    h="<div class='fb "+(lastOk?"ok":"no")+"' style='display:block'>"+(lastOk?"Correct! The tournament is complete.":"Wrong &mdash; the student is OUT. The tournament is complete.")+"</div>"+h;
+    var kn=lastGiven==="(auto-play)";
+    h="<div class='fb "+(lastOk?"ok":"no")+"' style='display:block'>"+(lastOk?"Correct! The tournament is complete.":(kn?"Wrong — Khannas is OUT. The tournament is complete.":"Wrong &mdash; the student is OUT. The tournament is complete."))+"</div>"+h;
   }
   box.innerHTML=h;
   var j=$("eJudge"), r=$("eReplace"), inp=$("eAns");
   if(j)j.addEventListener("click",exJudge);
   if(r)r.addEventListener("click",exReplace);
   if(inp){inp.focus();inp.addEventListener("keydown",function(e){if(e.key==="Enter")exJudge();});}
+  if(CURQ&&CURQ.student.virtual&&EX.started&&!EX.finished){
+    /* Khannas auto-plays after a short "thinking" pause. Stale-timer guard: a timer
+       from an older turn must never judge a newer tournament state. */
+    var myEX=EX,myQ=CURQ;
+    setTimeout(function(){if(EX===myEX&&CURQ===myQ){exJudgeVirtual();}},1600);
+  }
   var fb=$("eFb");
-  if(fb&&lastOk!==null&&lastOk!==undefined&&!keepFb){fb.className="fb "+(lastOk?"ok":"no");fb.innerHTML=lastOk?"Correct!":"Wrong — the student is OUT.";}
+  if(fb&&lastOk!==null&&lastOk!==undefined&&!keepFb){
+    var kn2=lastGiven==="(auto-play)";
+    fb.className="fb "+(lastOk?"ok":"no");
+    fb.innerHTML=lastOk?(kn2?"Correct! Khannas stays in.":"Correct!"):(kn2?"Wrong — Khannas is OUT.":"Wrong — the student is OUT.");
+  }
 }
 function printExam(){
   var h="<h2>Spelling Star — Tournament Results</h2><p>Date: "+nowStr()+" · Rounds: Spelling, Jumbled Word, Fill in the Gaps, Super Word · Knockout: one wrong answer = out.</p>";
   h+="<h3>Final ranking</h3><table><tr><th>Rank</th><th>Student</th><th>ID</th><th>Result</th><th>Correct</th></tr>";
-  ranking().forEach(function(s,i){h+="<tr><td>"+(i+1)+"</td><td>"+esc(s.name)+"</td><td>"+esc(s.id)+"</td><td>"+(s===EX.winner?"WINNER":"Out in Round "+s.outRound)+"</td><td>"+s.correct+"</td></tr>";});
+  ranking().forEach(function(s,i){
+    var nm=s.virtual?esc(s.name)+" (virtual rival)":esc(s.name);
+    var idc=s.virtual?"—":esc(s.id);
+    var res=(s===EX.winner)?(s.virtual?"WINNER (virtual rival)":"WINNER"):("Out in Round "+s.outRound);
+    h+="<tr><td>"+(i+1)+"</td><td>"+nm+"</td><td>"+idc+"</td><td>"+res+"</td><td>"+s.correct+"</td></tr>";});
   h+="</table><p>Tie rule used for this sheet (round reached, then correct answers, then entry order): ASSUMPTION — not an official Spelling Star rule. Pass/skip: none in official mode (ASSUMPTION). Word replacement before an answer is an organizer decision and is logged.</p>";
   h+="<h3>Audit trail</h3><table><tr><th>Time</th><th>Student</th><th>ID</th><th>Round</th><th>Word</th><th>Given</th><th>Verdict</th></tr>";
   EX.audit.forEach(function(a){h+="<tr><td>"+esc(a.t)+"</td><td>"+esc(a.name)+"</td><td>"+esc(a.id)+"</td><td>"+a.round+"</td><td>"+esc(a.word)+"</td><td>"+esc(a.given)+"</td><td>"+(a.replaced?"REPLACED":(a.ok?"Correct":"OUT"))+"</td></tr>";});
@@ -722,6 +795,7 @@ function doPrint(html){
 document.querySelectorAll("nav button").forEach(function(b){b.addEventListener("click",function(){show(b.getAttribute("data-v"));});});
 $("pStart").addEventListener("click",startPractice);
 $("eAddReg").addEventListener("click",exAddStudents);
+$("eAddKhannas").addEventListener("click",exToggleKhannas);
 $("eStart").addEventListener("click",exStart);
 $("eReset").addEventListener("click",exReset);
 $("ePrint").addEventListener("click",function(){if(EX)printExam();});
