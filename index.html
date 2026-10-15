@@ -201,7 +201,16 @@ body.student-mode .adminOnly{display:none!important}
     <p class="note">Name entry is mandatory for scoring. Registered cards keep full name + registration no. on every score.</p>
   </div>
   <div class="card"><h2>How the rounds work</h2>
-    <p class="clue">Round 1 <b>Spelling</b> &rarr; Round 2 <b>Jumbled Word</b> &rarr; Round 3 <b>Fill in the Gaps</b> &rarr; Round 4 <b>Super Word</b>. One wrong answer = out (knockout). Rounds 1&ndash;3 use the official Level 4 guide words only (442 words, pages 111&ndash;133). Super Word uses easy outside-syllabus words in 6 named categories (Science, Cartoon, Sports, Capitals, Environment, Heritage/History) &mdash; 2 more categories are unknown and are not invented here.</p>
+    <p class="clue">Round 1 <b>Spelling</b> &rarr; Round 2 <b>Jumbled Word</b> &rarr; Round 3 <b>Fill in the Gaps</b> &rarr; Round 4 <b>Super Word</b>. One wrong answer = out (knockout). Rounds 1&ndash;3 use the official Level 4 guide words only (442 words, pages 111&ndash;133). Super Word uses 3000+ outside-syllabus words in 16 categories (Science, Cartoon, Sports, Capitals, Environment, Heritage/History, Animals, Food, Technology, Body, Space, Geography, History, Heritage, Mythology, Arts), organized by difficulty: Easy, Hard, Challenging, High Challenging.</p>
+  </div>
+  <div class="card" id="soloCard"><h2>&#127942; Solo Tournament vs Virtual Rival &#129302;</h2>
+    <p class="note">Enter your Name + Registration ID, pick your rival, and play a full 4-round knockout tournament. The rival auto-plays &mdash; strong but beatable!</p>
+    <label>Your name <input type="text" id="soloName" placeholder="Full name" style="width:200px"></label>
+    <label>Registration ID <input type="text" id="soloId" placeholder="e.g. KQZ26000652" style="width:160px"></label><br>
+    <label>Rival <select id="soloRival"><option value="khannas">Khannas &#129302; (strong)</option><option value="robo">RoboRoo &#129302; (steady)</option></select></label>
+    <label>Clue language <select id="soloLang"><option value="bn">Bangla + English</option><option value="en">English only</option></select></label><br>
+    <button class="btn gold big" id="soloStart">Start Solo Tournament</button>
+    <div id="soloBox" style="margin-top:12px"></div>
   </div>
 </section>
 <section id="view-practice" class="hidden">
@@ -210,13 +219,13 @@ body.student-mode .adminOnly{display:none!important}
     <label>Words <select id="pLang"><option value="nobn" selected>No Bangla (words only)</option><option value="bn">With Bangla</option></select></label>
     <label>Letter case <select id="pCase"><option value="small" selected>Small (abc)</option><option value="cap">CAPITAL (ABC)</option></select></label>
     <div id="pSuperRow" class="hidden">
-      <label>Category <select id="pCat"><option value="">All categories</option><option>Science</option><option>Cartoon</option><option>Sports</option><option>Capitals</option><option>Environment</option><option>Heritage/History</option></select></label>
+      <label>Category <select id="pCat"><option value="">All categories</option><option>Science</option><option>Cartoon</option><option>Sports</option><option>Capitals</option><option>Environment</option><option>Heritage/History</option><option>Animals</option><option>Food</option><option>Technology</option><option>Body</option><option>Space</option><option>Geography</option><option>History</option><option>Heritage</option><option>Mythology</option><option>Arts</option></select></label>
       <label>Difficulty <select id="pTier"><option value="">All levels</option><option>Easy</option><option>Hard</option><option>Challenging</option><option>High Challenging</option></select></label>
       <label><input type="checkbox" id="pTop"> Top Prep (120 elite)</label>
       <span class="note" id="pSuperLive"></span>
     </div>
     <label>How many words <input type="number" id="pCount" min="1" max="442" value="10" style="width:80px"></label>
-    <span id="pPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="442">All</button></span><br>
+    <span id="pPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="all">All</button></span><br>
     <label class="adminOnly">Guide pages (teacher) <input type="number" id="pPgLo" min="111" max="133" placeholder="111" style="width:70px"> &ndash; <input type="number" id="pPgHi" min="111" max="133" placeholder="133" style="width:70px"></label>
     <button class="btn gold" id="pStart">Start Test</button>
     <div id="pBox" style="margin-top:12px"></div>
@@ -228,6 +237,7 @@ body.student-mode .adminOnly{display:none!important}
     <button class="btn gold" id="eAddKhannas">Add Khannas (virtual rival)</button><br>
     <label>Starting round <select id="eStartRound"><option value="1">Round 1 Spelling</option><option value="2">Round 2 Jumbled</option><option value="3">Round 3 Gaps</option><option value="4">Round 4 Super Word</option></select></label>
     <label>Questions per student each round <select id="eQPer"><option value="1" selected>1 (official)</option><option value="2">2</option><option value="3">3</option></select></label>
+    <label>Clue language <select id="eLang"><option value="bn">Bangla + English</option><option value="en">English only</option></select></label>
     <button class="btn green big" id="eStart">Start Tournament</button>
     <button class="btn red" id="eReset">Reset</button>
     <button class="btn ghost" id="ePrint">Print Results Sheet</button>
@@ -240,11 +250,11 @@ body.student-mode .adminOnly{display:none!important}
     <label class="adminOnly">Student <select id="wStu"></select></label>
     <label>Round <select id="wMode"><option value="spelling">Spelling</option><option value="jumbled">Jumbled Word</option><option value="gaps">Fill in the Gaps</option><option value="super">Super Word</option></select></label>
     <label>How many words <input type="number" id="wCount" min="1" max="442" value="10" style="width:80px"></label>
-    <span id="wPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="442">All</button></span>
+    <span id="wPresets"><button class="btn ghost" data-n="5">5</button><button class="btn ghost" data-n="10">10</button><button class="btn ghost" data-n="20">20</button><button class="btn ghost" data-n="50">50</button><button class="btn ghost" data-n="all">All</button></span>
     <label>Words <select id="wLang"><option value="nobn">No Bangla (words only)</option><option value="bn" selected>With Bangla</option></select></label>
     <label>Letter case <select id="wCase"><option value="small" selected>Small (abc)</option><option value="cap">CAPITAL (ABC)</option></select></label>
     <div id="wSuperRow" class="hidden">
-      <label>Category <select id="wCat"><option value="">All categories</option><option>Science</option><option>Cartoon</option><option>Sports</option><option>Capitals</option><option>Environment</option><option>Heritage/History</option></select></label>
+      <label>Category <select id="wCat"><option value="">All categories</option><option>Science</option><option>Cartoon</option><option>Sports</option><option>Capitals</option><option>Environment</option><option>Heritage/History</option><option>Animals</option><option>Food</option><option>Technology</option><option>Body</option><option>Space</option><option>Geography</option><option>History</option><option>Heritage</option><option>Mythology</option><option>Arts</option></select></label>
       <label>Difficulty <select id="wTier"><option value="">All levels</option><option>Easy</option><option>Hard</option><option>Challenging</option><option>High Challenging</option></select></label>
       <label><input type="checkbox" id="wTop"> Top Prep (120 elite)</label>
       <span class="note" id="wSuperLive"></span>
@@ -408,6 +418,7 @@ body.student-mode .adminOnly{display:none!important}
 <script src="d5.js"></script>
 <script src="d6.js"></script>
 <script src="d7.js"></script>
+<script src="d8.js"></script>
 <script src="app.js"></script>
 <script src="gate.js"></script>
 </body>

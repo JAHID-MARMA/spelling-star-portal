@@ -24,7 +24,7 @@ function say(msg,kind){
 }
 
 /* ---------- Teacher Settings (one place for all teacher controls) ---------- */
-var SETT={pMode:"spelling",pLang:"nobn",pCount:10,pCase:"small",passSkip:true,school:"Self Scale Academy",showGradeScale:true};
+var SETT={pMode:"spelling",pLang:"nobn",pCount:10,pCase:"small",passSkip:true,school:"Self Scale Academy",showGradeScale:true,tLang:"bn"};
 /* Letter case — CAPITAL or Small, always UNIFORM (never mixed, so no capital-letter clues leak) */
 function caseWord(w){return SETT.pCase==="cap"?String(w).toUpperCase():String(w).toLowerCase();}
 function setCaseMode(v){
@@ -91,6 +91,7 @@ function applySettings(){
   if($("sSkip"))$("sSkip").checked=!!SETT.passSkip;
   if($("sScale"))$("sScale").checked=!!SETT.showGradeScale;
   if($("sSchool"))$("sSchool").value=schoolName();
+  if($("eLang"))$("eLang").value=SETT.tLang||"bn";
 }
 function renderSettingsStu(){
   var h="<table><tr><th>#</th><th>Student</th><th>Registration No.</th><th>Photo</th></tr>";
@@ -120,6 +121,34 @@ try{HISTORY=JSON.parse(localStorage.getItem("ss_history")||"[]");}catch(e){HISTO
 
 var VIEWS=["home","practice","worksheet","exam","history"];
 function show(v){VIEWS.forEach(function(x){$("view-"+x).classList.toggle("hidden",x!==v);});document.querySelectorAll("nav button").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-v")===v);});if(v==="history")renderHistory();if(v==="pages"){fillPgStu();renderCov();}if(v==="settings"){renderSettingsStu();}window.scrollTo(0,0);}
+
+/* ---------- Persistent no-repeat word tracking (per student, per pool) ---------- */
+/* Words are never repeated for a student until the entire pool is exhausted,
+   then the pool reshuffles automatically. Stored in localStorage. */
+function usedKey(sid,pool){return "ss_used_"+(sid||"guest")+"_"+pool;}
+function getUsed(sid,pool){
+  try{var a=JSON.parse(localStorage.getItem(usedKey(sid,pool))||"[]");return Array.isArray(a)?a:[];}catch(e){return[];}
+}
+function markUsed(sid,pool,words){
+  try{
+    var u=getUsed(sid,pool),seen={};
+    u.forEach(function(w){seen[w]=1;});
+    words.forEach(function(w){if(!seen[w]){seen[w]=1;u.push(w);}});
+    localStorage.setItem(usedKey(sid,pool),JSON.stringify(u));
+  }catch(e){}
+}
+function freshPool(sid,poolName,fullPool,getW){
+  /* Returns pool minus already-used words; auto-reshuffles (clears) when exhausted. */
+  var used=getUsed(sid,poolName),usedSet={};
+  used.forEach(function(w){usedSet[w]=1;});
+  var fresh=fullPool.filter(function(it){return !usedSet[getW(it)];});
+  if(!fresh.length&&fullPool.length){
+    try{localStorage.removeItem(usedKey(sid,poolName));}catch(e){}
+    fresh=fullPool.slice();
+  }
+  return fresh;
+}
+function poolNameFor(mode,cat,tier){return mode+(cat?"_"+cat:"")+(tier?"_"+tier:"");}
 
 /* ---------- Students ---------- */
 function allStudents(){
@@ -205,6 +234,11 @@ function startPractice(){
   }else{pool=BANK;}
   if(!(count>=1)){count=10;$("pCount").value=10;}
   count=Math.min(count,pool.length);
+  /* No-repeat: filter out words this student already saw; auto-reshuffle when exhausted */
+  var sid=CURRENT?(CURRENT.id||CURRENT.name):"guest";
+  var pn=poolNameFor(mode,mode==="super"&&sel?sel.cat:"",mode==="super"&&sel?sel.tier:"");
+  var getW=function(it){return mode==="super"?it.w:it.w;};
+  pool=freshPool(sid,pn,pool,getW);
   var items=shuffle(pool).slice(0,count);
   /* Teacher page filter: guide pages 111-133 (adminOnly inputs; students see empty = all pages) */
   var lo=parseInt($("pPgLo").value,10), hi=parseInt($("pPgHi").value,10);
@@ -215,6 +249,7 @@ function startPractice(){
     if(!fpool.length){say("No words found on pages "+lo+"\u2013"+hi+".","warn");return;}
     items=shuffle(fpool).slice(0,Math.min(count,fpool.length));
   }
+  markUsed(sid,pn,items.map(getW));
   PR={mode:mode,lang:$("pLang").value,items:items,idx:0,score:0,done:false,student:CURRENT?CURRENT.name:"Guest",sid:CURRENT?CURRENT.id:"",pageLo:pageLo,pageHi:pageHi,superD:superD};
   renderQ();
 }
@@ -337,7 +372,7 @@ function wireDelButtons(root){
 var EX=null;
 function newExam(){
   CURQ=null;
-  EX={roster:[],round:1,startRound:1,qPer:1,started:false,finished:false,asked:{},used:{},superUsed:{},audit:[],winner:null,qCount:0};
+  EX={roster:[],round:1,startRound:1,qPer:1,started:false,finished:false,asked:{},used:{},superUsed:{},audit:[],winner:null,qCount:0,tLang:SETT.tLang||"bn"};
   renderExam();
   khannasBtnLabel();
 }
@@ -382,22 +417,35 @@ function exStart(){
 }
 function exReset(){newExam();}
 function bankItem(){
-  var pool=BANK.filter(function(b){return !EX.used[b.w];});
-  if(!pool.length){EX.used={};pool=BANK;}
-  var it=pick(pool); EX.used[it.w]=1; return it;
+  /* Persistent no-repeat: merge session-used with stored used-words */
+  var stored=getUsed("tournament","bank");
+  var pool=BANK.filter(function(b){return !EX.used[b.w]&&stored.indexOf(b.w)<0;});
+  if(!pool.length){
+    try{localStorage.removeItem(usedKey("tournament","bank"));}catch(e){}
+    EX.used={};pool=BANK;
+  }
+  var it=pick(pool); EX.used[it.w]=1;
+  markUsed("tournament","bank",[it.w]);
+  return it;
 }
 function superItem(){
-  var pool=SUPER.filter(function(s){return !EX.superUsed[s.w];});
-  if(!pool.length){EX.superUsed={};pool=SUPER;}
-  var it=pick(pool); EX.superUsed[it.w]=1; return it;
+  var stored=getUsed("tournament","super");
+  var pool=SUPER.filter(function(s){return !EX.superUsed[s.w]&&stored.indexOf(s.w)<0;});
+  if(!pool.length){
+    try{localStorage.removeItem(usedKey("tournament","super"));}catch(e){}
+    EX.superUsed={};pool=SUPER;
+  }
+  var it=pick(pool); EX.superUsed[it.w]=1;
+  markUsed("tournament","super",[it.w]);
+  return it;
 }
 var CURQ=null;
 function makeQ(){
-  var it, prompt, ans;
-  if(EX.round===4){it=superItem();prompt="<div class='clue'>Category: <b>"+esc(it.cat)+"</b><br>Clue: "+esc(it.c)+"</div>";ans=it.w;}
-  else if(EX.round===1){it=bankItem();prompt="<div class='clue'><span class='bn'>"+esc(it.bn)+"</span><br>"+esc(it.en)+" <i>("+esc(it.pos)+")</i></div>";ans=it.w;}
-  else if(EX.round===2){it=bankItem();prompt="<div class='clue'>"+esc(it.en)+"</div><div class='jumble'>"+esc(jumble(it.w))+"</div>";ans=it.w;}
-  else{it=bankItem();prompt="<div class='clue'>"+esc(it.en)+"</div><div class='gaps'>"+esc(gapPattern(it.w))+"</div>";ans=it.w;}
+  var it, prompt, ans, dw;
+  if(EX.round===4){it=superItem();dw=caseWord(it.w);prompt="<div class='clue'>Category: <b>"+esc(it.cat)+"</b><br>Clue: "+esc(it.c)+"</div>";ans=it.w;}
+  else if(EX.round===1){it=bankItem();prompt="<div class='clue'>"+(EX.tLang!=="en"?"<span class='bn'>"+esc(it.bn)+"</span><br>":"")+esc(it.en)+" <i>("+esc(it.pos)+")</i></div>";ans=it.w;}
+  else if(EX.round===2){it=bankItem();dw=caseWord(it.w);prompt="<div class='clue'>"+esc(it.en)+"</div><div class='jumble'>"+esc(jumble(dw))+"</div>";ans=it.w;}
+  else{it=bankItem();dw=caseWord(it.w);prompt="<div class='clue'>"+esc(it.en)+"</div><div class='gaps'>"+esc(gapPattern(dw))+"</div>";ans=it.w;}
   return {item:it,prompt:prompt,ans:ans};
 }
 function currentStudent(){
@@ -443,7 +491,8 @@ function exJudgeVirtual(){
   if(!CURQ||EX.lock||!CURQ.student.virtual)return;
   var s=CURQ.student;
   EX.lock=true;
-  var p=KHANNAS_SKILL[EX.round]||0.85;
+  var skill=(EX.rivalSkill||KHANNAS_SKILL);
+  var p=skill[EX.round]||0.85;
   exApply(s,Math.random()<p,"(auto-play)");
 }
 function exReplace(){
@@ -461,7 +510,7 @@ function ranking(){
 }
 function renderExam(lastOk,lastGiven,keepFb){
   EX.lock=false;
-  var box=$("eBox"), h="";
+  var box=$(EX&&EX.solo?"soloBox":"eBox"), h="";
   h+="<div class='scorebar'>Roster: "+EX.roster.length+" / 100 · Alive: "+aliveList().length+" · Round: "+(EX.started?("Round "+EX.round+" — "+modeName(["","spelling","jumbled","gaps","super"][EX.round])):"not started")+"</div>";
   if(EX.started&&!EX.finished&&aliveList().length<=10&&aliveList().length>3){h+="<div class='banner'>TOP "+aliveList().length+" — final stage!</div>";}
   if(EX.started&&!EX.finished&&aliveList().length<=3&&aliveList().length>1){h+="<div class='banner'>TOP "+aliveList().length+"!</div>";}
@@ -473,14 +522,14 @@ function renderExam(lastOk,lastGiven,keepFb){
     if(CURQ.student.virtual){
       h+="<div class='card' style='box-shadow:none;border:2px solid #F59E0B'><h2>Now answering: "+esc(CURQ.student.name)+" &#129302; <span class='note'>(virtual rival — auto-play)</span></h2>";
       h+=CURQ.q.prompt;
-      h+="<p class='note'>Khannas is spelling the word… the result appears automatically.</p>";
+      h+="<p class='note'>"+esc(CURQ.student.name)+" is spelling the word… the result appears automatically.</p>";
       h+="<div class='fb' id='eFb'></div></div>";
     }else{
       h+="<div class='card' style='box-shadow:none;border:2px solid #F59E0B'><h2>Now answering: "+esc(CURQ.student.name)+(CURQ.student.id?" · "+esc(CURQ.student.id):"")+"</h2>";
       h+=CURQ.q.prompt;
       h+="<br><input type='text' class='ans' id='eAns' autocomplete='off' placeholder='Type the answer exactly'>";
-      h+="<br><button class='btn gold big' id='eJudge'>Judge Answer</button>";
-      h+=" <button class='btn ghost' id='eReplace'>Replace word (organizer)</button>";
+      h+="<br><button class='btn gold big' id='eJudge'>"+(EX.solo?"Check My Answer":"Judge Answer")+"</button>";
+      if(!EX.solo)h+=" <button class='btn ghost' id='eReplace'>Replace word (organizer)</button>";
       h+="<div class='fb' id='eFb'></div></div>";
     }
   }
@@ -536,6 +585,29 @@ function renderExam(lastOk,lastGiven,keepFb){
     fb.className="fb "+(lastOk?"ok":"no");
     fb.innerHTML=lastOk?(kn2?"Correct! Khannas stays in.":"Correct!"):(kn2?"Wrong — Khannas is OUT.":"Wrong — the student is OUT.");
   }
+}
+/* ---------- Solo Tournament vs Virtual Rival (student self-play) ---------- */
+var RIVALS={
+  khannas:{name:"Khannas",skill:[0,0.88,0.86,0.84,0.80]},
+  robo:{name:"RoboRoo",skill:[0,0.75,0.72,0.70,0.65]}
+};
+function soloStart(){
+  var n=$("soloName").value.trim(), id=$("soloId").value.trim();
+  if(!n){say("Enter your name first.","warn");return;}
+  if(!id){say("Enter your Registration ID first.","warn");return;}
+  var rk=$("soloRival").value||"khannas";
+  var rival=RIVALS[rk]||RIVALS.khannas;
+  newExam();
+  EX.solo=true;
+  EX.tLang=$("soloLang").value||"bn";
+  EX.rivalSkill=rival.skill;
+  EX.roster.push({name:n,id:id,alive:true,outRound:0,correct:0,wrongWord:"",order:1,virtual:false});
+  EX.roster.push({name:rival.name,id:"VIRTUAL",alive:true,outRound:0,correct:0,wrongWord:"",order:2,virtual:true,rivalKey:rk});
+  EX.startRound=1;EX.round=1;EX.qPer=1;EX.started=true;EX.asked={};EX.qCount=0;
+  setStudent(n,id);
+  nextTurn(true);
+  renderExam();
+  say("Tournament started — you vs "+rival.name+" 🤖. Good luck!","ok");
 }
 function printExam(){
   var h="<h2>Spelling Star — Tournament Results</h2><p>Date: "+nowStr()+" · Rounds: Spelling, Jumbled Word, Fill in the Gaps, Super Word · Knockout: one wrong answer = out.</p>";
@@ -797,7 +869,9 @@ $("pStart").addEventListener("click",startPractice);
 $("eAddReg").addEventListener("click",exAddStudents);
 $("eAddKhannas").addEventListener("click",exToggleKhannas);
 $("eStart").addEventListener("click",exStart);
+$("eLang").addEventListener("change",function(){SETT.tLang=this.value;saveSettings();if(EX&&!EX.started)EX.tLang=this.value;});
 $("eReset").addEventListener("click",exReset);
+$("soloStart").addEventListener("click",soloStart);
 $("ePrint").addEventListener("click",function(){if(EX)printExam();});
 $("hPrint").addEventListener("click",printHistory);
 $("wGen").addEventListener("click",genWorksheet);
@@ -834,8 +908,8 @@ applyTheme();
 superRowVisibility();
 $("themeBtn").addEventListener("click",toggleTheme);
 var gt=$("gTheme");if(gt)gt.addEventListener("click",toggleTheme);
-document.querySelectorAll("#pPresets button").forEach(function(b){b.addEventListener("click",function(){$("pCount").value=b.getAttribute("data-n");});});
-document.querySelectorAll("#wPresets button").forEach(function(b){b.addEventListener("click",function(){$("wCount").value=b.getAttribute("data-n");wsLiveInfo();});});
+document.querySelectorAll("#pPresets button").forEach(function(b){b.addEventListener("click",function(){var n=b.getAttribute("data-n");$("pCount").value=(n==="all")?(($("pMode").value==="super")?SUPER.length:442):n;});});
+document.querySelectorAll("#wPresets button").forEach(function(b){b.addEventListener("click",function(){var n=b.getAttribute("data-n");$("wCount").value=(n==="all")?(($("wMode").value==="super")?SUPER.length:442):n;wsLiveInfo();});});
 $("sSave").addEventListener("click",function(){
   SETT.pMode=$("sMode").value;SETT.pLang=$("sLang").value;
   var c=parseInt($("sCount").value,10);SETT.pCount=(c>=1&&c<=442)?c:10;
